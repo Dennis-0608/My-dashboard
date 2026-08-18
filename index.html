@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iPhone Dashboard</title>
+    <!-- 引入 Tailwind CSS 確保排版現代化且適配手機 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Lucide 圖標庫 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-100 h-screen w-screen overflow-hidden flex flex-col p-4">
+
+    <!-- 頂部標題 -->
+    <header class="mb-3 flex justify-between items-center">
+        <h1 class="text-xl font-bold text-gray-800">我的即時 Dashboard</h1>
+        <span id="gps-status" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">定位中...</span>
+    </header>
+
+    <!-- 主體格線排版 (符合你的設計：左上天氣、左下電台、右邊地鐵) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 h-[calc(100%-3rem)]">
+        
+        <!-- 左側：天氣 (上) + 電台 (下) -->
+        <div class="flex flex-col gap-4 h-full">
+            
+            <!-- 1. 天氣卡片 (左上) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col justify-between flex-1 border border-gray-100">
+                <div class="flex justify-between items-start">
+                    <span class="text-sm font-semibold text-gray-400">即時天氣</span>
+                    <i data-lucide="sun" class="text-orange-500 w-8 h-8"></i>
+                </div>
+                <div>
+                    <h2 id="location-name" class="text-lg font-bold text-gray-800">香港定位中</h2>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <span class="text-4xl font-extrabold text-gray-900">28°C</span>
+                        <span class="text-sm text-gray-500">大致天晴</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 電台卡片 (左下，具備記憶功能) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col justify-between flex-1 border border-gray-100">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-semibold text-gray-400">電台頻道</span>
+                    <i data-lucide="radio" class="text-blue-500 w-5 h-5"></i>
+                </div>
+                <div>
+                    <select id="radio-select" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="RTHK Radio 1">香港電台 第一台 (RTHK 1)</option>
+                        <option value="RTHK Radio 2">香港電台 第二台 (RTHK 2)</option>
+                        <option value="Commercial Radio 881">商業電台 881</option>
+                        <option value="Metro Info">新城知訊台</option>
+                    </select>
+                </div>
+                <div class="text-xs text-blue-600 font-medium flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    正在播放：<span id="current-radio" class="font-bold">RTHK Radio 1</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 右側：地鐵即時班次 -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col h-full border border-gray-100">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-sm font-semibold text-gray-400">港鐵即時班次</span>
+                <select id="mtr-station-select" class="bg-gray-50 border border-gray-200 text-gray-800 text-xs rounded-lg p-2">
+                    <option value="中環">中環站</option>
+                    <option value="金鐘">金鐘站</option>
+                    <option value="旺角">旺角站</option>
+                    <option value="尖沙咀">尖沙咀站</option>
+                    <option value="銅鑼灣">銅鑼灣站</option>
+                </select>
+            </div>
+            
+            <div class="flex flex-col gap-3 flex-1 overflow-y-auto">
+                <!-- 方向一 -->
+                <div class="bg-gray-50 p-3 rounded-xl">
+                    <div class="text-xs font-bold text-blue-600 mb-2">往 <span id="dir-1-dest">堅尼地城</span> 方向</div>
+                    <div id="dir-1-times" class="flex gap-2">
+                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">2 分鐘</span>
+                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">5 分鐘</span>
+                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">9 分鐘</span>
+                    </div>
+                </div>
+
+                <!-- 方向二 -->
+                <div class="bg-gray-50 p-3 rounded-xl">
+                    <div class="text-xs font-bold text-red-600 mb-2">往 <span id="dir-2-dest">柴灣</span> 方向</div>
+                    <div id="dir-2-times" class="flex gap-2">
+                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">1 分鐘</span>
+                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">6 分鐘</span>
+                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">11 分鐘</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 初始化圖標
+        lucide.createIcons();
+
+        // 1. GPS 定位邏輯
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    document.getElementById('gps-status').innerText = "GPS 已連線";
+                    document.getElementById('location-name').innerText = "目前位置 (已定位)";
+                },
+                (error) => {
+                    document.getElementById('gps-status').innerText = "使用預設位置";
+                    document.getElementById('location-name').innerText = "香港 (預設)";
+                }
+            );
+        }
+
+        // 2. 電台記憶功能 (LocalStorage)
+        const radioSelect = document.getElementById('radio-select');
+        const currentRadioText = document.getElementById('current-radio');
+
+        // 讀取上次保留的頻道
+        const savedRadio = localStorage.getItem('saved_radio_channel');
+        if (savedRadio) {
+            radioSelect.value = savedRadio;
+            currentRadioText.innerText = savedRadio;
+        }
+
+        // 當頻道改變時儲存
+        radioSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            localStorage.setItem('saved_radio_channel', val);
+            currentRadioText.innerText = val;
+        });
+
+        // 3. MTR 車站切換聯動模擬
+        const mtrStationSelect = document.getElementById('mtr-station-select');
+        mtrStationSelect.addEventListener('change', (e) => {
+            // 這裡可以依據不同車站切換模擬資料
+            const station = e.target.value;
+            document.getElementById('dir-1-dest').innerText = station === '中環' ? '堅尼地城' : '調景嶺';
+            document.getElementById('dir-2-dest').innerText = station === '中環' ? '柴灣' : '黃埔';
+        });
+    </script>
+</body>
+</html>
