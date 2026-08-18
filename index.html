@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPhone Dashboard - 完整版</title>
+    <title>iPhone Dashboard - 專業完整版</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Lucide 圖標庫 -->
@@ -38,21 +38,29 @@
                 </div>
             </div>
 
-            <!-- 2. 電台卡片 (左下，支援真實播放與記憶功能) -->
+            <!-- 2. 電台卡片 (左下，包含 881 及 903) -->
             <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col justify-between flex-1 border border-gray-100">
                 <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold text-gray-400">電台頻道 (支援播放)</span>
+                    <span class="text-sm font-semibold text-gray-400">電台頻道 (含商業電台)</span>
                     <i data-lucide="radio" class="text-blue-500 w-5 h-5"></i>
                 </div>
                 <div>
                     <select id="radio-select" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="https://rthk.ice.infomaniak.ch/rthk-radio1.mp3">香港電台 第一台 (RTHK 1)</option>
-                        <option value="https://rthk.ice.infomaniak.ch/rthk-radio2.mp3">香港電台 第二台 (RTHK 2)</option>
-                        <option value="https://rthk.ice.infomaniak.ch/rthk-radio4.mp3">香港電台 第四台 (音樂)</option>
-                        <option value="https://stream.metroradio.com.hk/metro838">新城知訊台 (FM 99.7)</option>
+                        <optgroup label="香港電台 (RTHK)">
+                            <option value="https://rthk.ice.infomaniak.ch/rthk-radio1.mp3">香港電台 第一台 (RTHK 1)</option>
+                            <option value="https://rthk.ice.infomaniak.ch/rthk-radio2.mp3">香港電台 第二台 (RTHK 2)</option>
+                            <option value="https://rthk.ice.infomaniak.ch/rthk-radio4.mp3">香港電台 第四台 (音樂)</option>
+                        </optgroup>
+                        <optgroup label="商業電台 (Commercial Radio)">
+                            <option value="https://stream.881903.com/live/cr1/playlist.m3u8">商業電台 881 頻道 (雷霆 881)</option>
+                            <option value="https://stream.881903.com/live/cr2/playlist.m3u8">商業電台 903 頻道 (叱咤 903)</option>
+                        </optgroup>
+                        <optgroup label="新城廣播">
+                            <option value="https://stream.metroradio.com.hk/metro838">新城知訊台 (FM 99.7)</option>
+                        </optgroup>
                     </select>
                 </div>
-                <!-- 隱藏或實際運作的音訊播放器 -->
+                
                 <audio id="radio-player" preload="none"></audio>
                 
                 <div class="flex items-center justify-between">
@@ -66,13 +74,14 @@
 
         </div>
 
-        <!-- 右側：地鐵即時班次 (全港車站) -->
+        <!-- 右側：地鐵即時班次 (涵蓋全港 10 條路線) -->
         <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col h-full border border-gray-100">
             <div class="flex justify-between items-center mb-3">
                 <span class="text-sm font-semibold text-gray-400">港鐵即時班次</span>
                 <select id="mtr-station-select" class="bg-gray-50 border border-gray-200 text-gray-800 text-xs rounded-lg p-2 max-w-[150px]">
-                    <!-- 港島線 -->
-                    <optgroup label="港島線">
+                    
+                    <!-- 1. 港島線 -->
+                    <optgroup label="港島線 Island Line">
                         <option value="堅尼地城">堅尼地城</option>
                         <option value="香港大學">香港大學</option>
                         <option value="西營盤">西營盤</option>
@@ -91,8 +100,11 @@
                         <option value="杏花邨">杏花邨</option>
                         <option value="柴灣">柴灣</option>
                     </optgroup>
-                    <!-- 荃灣線 -->
-                    <optgroup label="荃灣線">
+
+                    <!-- 2. 荃灣線 -->
+                    <optgroup label="荃灣線 Tsuen Wan Line">
+                        <option value="中環">中環</option>
+                        <option value="金鐘">金鐘</option>
                         <option value="尖沙咀">尖沙咀</option>
                         <option value="佐敦">佐敦</option>
                         <option value="油麻地">油麻地</option>
@@ -107,14 +119,15 @@
                         <option value="大窩口">大窩口</option>
                         <option value="荃灣">荃灣</option>
                     </optgroup>
-                    <!-- 觀塘線 -->
-                    <optgroup label="觀塘線">
+
+                    <!-- 3. 觀塘線 -->
+                    <optgroup label="觀塘線 Kwun Tong Line">
                         <option value="黃埔">黃埔</option>
                         <option value="何文田">何文田</option>
                         <option value="油麻地">油麻地</option>
                         <option value="旺角">旺角</option>
                         <option value="太子">太子</option>
-                        <option value="石-尾">石硤尾</option>
+                        <option value="石硤尾">石硤尾</option>
                         <option value="九龍塘">九龍塘</option>
                         <option value="樂富">樂富</option>
                         <option value="黃大仙">黃大仙</option>
@@ -126,32 +139,122 @@
                         <option value="油塘">油塘</option>
                         <option value="調景嶺">調景嶺</option>
                     </optgroup>
-                    <!-- 其他重要轉車站與路線 (可依需要增減) -->
-                    <optgroup label="東鐵線 / 屯馬線等">
-                        <option value="紅磡">紅磡</option>
+
+                    <!-- 4. 將軍澳線 -->
+                    <optgroup label="將軍澳線 Tseung Kwan O Line">
+                        <option value="北角">北角</option>
+                        <option value="鰂魚涌">鰂魚涌</option>
+                        <option value="油塘">油塘</option>
+                        <option value="調景嶺">調景嶺</option>
+                        <option value="將軍澳">將軍澳</option>
+                        <option value="坑口">坑口</option>
+                        <option value="寶琳">寶琳</option>
+                        <option value="康城">康城</option>
+                    </optgroup>
+
+                    <!-- 5. 東鐵線 -->
+                    <optgroup label="東鐵線 East Rail Line">
+                        <option value="金鐘">金鐘</option>
                         <option value="會展">會展</option>
+                        <option value="紅磡">紅磡</option>
+                        <option value="旺角東">旺角東</option>
+                        <option value="九龍塘">九龍塘</option>
                         <option value="大圍">大圍</option>
                         <option value="沙田">沙田</option>
+                        <option value="火炭">火炭</option>
+                        <option value="馬場">馬場</option>
+                        <option value="大學">大學</option>
+                        <option value="大埔墟">大埔墟</option>
+                        <option value="太和">太和</option>
+                        <option value="粉嶺">粉嶺</option>
+                        <option value="上水">上水</option>
+                        <option value="羅湖">羅湖</option>
+                        <option value="落馬洲">落馬洲</option>
+                    </optgroup>
+
+                    <!-- 6. 屯馬線 -->
+                    <optgroup label="屯馬線 Tuen Ma Line">
+                        <option value="烏溪沙">烏溪沙</option>
+                        <option value="馬鞍山">馬鞍山</option>
+                        <option value="恆安">恆安</option>
+                        <option value="大水坑">大水坑</option>
+                        <option value="石門">石門</option>
+                        <option value="第一城">第一城</option>
+                        <option value="沙田圍">沙田圍</option>
+                        <option value="車公廟">車公廟</option>
+                        <option value="大圍">大圍</option>
+                        <option value="顯徑">顯徑</option>
+                        <option value="鑽石山">鑽石山</option>
+                        <option value="啟德">啟德</option>
+                        <option value="宋皇臺">宋皇臺</option>
+                        <option value="土瓜灣">土瓜灣</option>
+                        <option value="何文田">何文田</option>
+                        <option value="紅磡">紅磡</option>
+                        <option value="尖東">尖東</option>
+                        <option value="柯士甸">柯士甸</option>
+                        <option value="南昌">南昌</option>
+                        <option value="美孚">美孚</option>
+                        <option value="荃灣西">荃灣西</option>
+                        <option value="錦上路">錦上路</option>
+                        <option value="元朗">元朗</option>
+                        <option value="朗屏">朗屏</option>
+                        <option value="天水圍">天水圍</option>
+                        <option value="兆康">兆康</option>
                         <option value="屯門">屯門</option>
                     </optgroup>
+
+                    <!-- 7. 東涌線 -->
+                    <optgroup label="東涌線 Tung Chung Line">
+                        <option value="香港">香港</option>
+                        <option value="九龍">九龍</option>
+                        <option value="奧運">奧運</option>
+                        <option value="南昌">南昌</option>
+                        <option value="荔景">荔景</option>
+                        <option value="青衣">青衣</option>
+                        <option value="欣澳">欣澳</option>
+                        <option value="東涌">東涌</option>
+                    </optgroup>
+
+                    <!-- 8. 機場快線 -->
+                    <optgroup label="機場快線 Airport Express">
+                        <option value="香港">香港</option>
+                        <option value="九龍">九龍</option>
+                        <option value="青衣">青衣</option>
+                        <option value="機場">機場</option>
+                        <option value="博覽館">博覽館</option>
+                    </optgroup>
+
+                    <!-- 9. 南港島線 -->
+                    <optgroup label="南港島線 South Island Line">
+                        <option value="金鐘">金鐘</option>
+                        <option value="海洋公園">海洋公園</option>
+                        <option value="黃竹坑">黃竹坑</option>
+                        <option value="利東">利東</option>
+                        <option value="海怡半島">海怡半島</option>
+                    </optgroup>
+
+                    <!-- 10. 迪士尼線 -->
+                    <optgroup label="迪士尼線 Disneyland Resort Line">
+                        <option value="欣澳">欣澳</option>
+                        <option value="迪士尼">迪士尼</option>
+                    </optgroup>
+
                 </select>
             </div>
             
             <div class="flex flex-col gap-3 flex-1 overflow-y-auto">
-                <!-- 方向一 -->
                 <div class="bg-gray-50 p-3 rounded-xl">
-                    <div class="text-xs font-bold text-blue-600 mb-2">往 <span id="dir-1-dest">總站 A</span> 方向</div>
-                    <div id="dir-1-times" class="flex gap-2">
+                    <div class="text-xs font-bold text-blue-600 mb-2">往 <span id="dir-1-dest">上行/終點</span> 方向</div>
+                    <div class="flex gap-2">
                         <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">2 分鐘</span>
                         <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">5 分鐘</span>
                         <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">9 分鐘</span>
                     </div>
                 </div>
 
-                <!-- 方向二 -->
                 <div class="bg-gray-50 p-3 rounded-xl">
-                    <div class="text-xs font-bold text-red-600 mb-2">往 <span id="dir-2-dest">總站 B</span> 方向</div>
-                    <div id="dir-2-times" class="flex gap-2">
+                    <div class="text-xs font-bold text-red-600 mb-2">往 <span id="dir-2-dest">下行/反向</span> 方向</div>
+                    <div class="flex gap-2">
                         <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">1 分鐘</span>
                         <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">6 分鐘</span>
                         <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">11 分鐘</span>
@@ -180,14 +283,12 @@
         const playBtn = document.getElementById('play-btn');
         const playerStatus = document.getElementById('player-status');
 
-        // 載入上次保留的頻道
         const savedRadio = localStorage.getItem('saved_radio_url');
         if (savedRadio) {
             radioSelect.value = savedRadio;
         }
         radioPlayer.src = radioSelect.value;
 
-        // 播放按鈕控制
         let isPlaying = false;
         playBtn.addEventListener('click', () => {
             if (isPlaying) {
@@ -201,12 +302,11 @@
                     playBtn.innerText = "暫停";
                     isPlaying = true;
                 }).catch(e => {
-                    playerStatus.innerText = "播放失敗 (點擊重試)";
+                    playerStatus.innerText = "播放失敗 (部分串流需在Safari開啟)";
                 });
             }
         });
 
-        // 當切換頻道時自動儲存並切換音樂源
         radioSelect.addEventListener('change', (e) => {
             const url = e.target.value;
             localStorage.setItem('saved_radio_url', url);
@@ -216,13 +316,12 @@
             }
         });
 
-        // 3. 地鐵站動態聯動邏輯
+        // 3. 地鐵站聯動
         const mtrStationSelect = document.getElementById('mtr-station-select');
         mtrStationSelect.addEventListener('change', (e) => {
             const station = e.target.value;
-            // 簡單根據選擇的車站動態顯示對應的行駛方向名稱
-            document.getElementById('dir-1-dest').innerText = station + " (上行/終點方向)";
-            document.getElementById('dir-2-dest').innerText = station + " (下行/反向方向)";
+            document.getElementById('dir-1-dest').innerText = station + " (上行方向)";
+            document.getElementById('dir-2-dest').innerText = station + " (下行方向)";
         });
     </script>
 </body>
