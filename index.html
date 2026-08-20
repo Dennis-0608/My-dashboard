@@ -39,6 +39,13 @@
             font-size: 20px;
             margin: 0;
         }
+        /* 右上角最後更新時間：粗體、純白、放大1pt（約15px） */
+        .header-time {
+            font-size: 15px;
+            font-weight: bold;
+            color: #ffffff;
+            text-align: right;
+        }
         .btn {
             background-color: #2c2c2e;
             color: var(--text-main);
@@ -170,7 +177,8 @@
 <div class="container">
     <header>
         <h1>🚝 MTR 即時班次</h1>
-        <button class="btn btn-primary" onclick="openModal('add')">＋ 新增收藏</button>
+        <!-- 右上角改為粗體白色、放大1pt的即時更新時間 -->
+        <div id="global-update-time" class="header-time">更新中...</div>
     </header>
 
     <!-- 收藏車站列表容器 -->
@@ -188,10 +196,10 @@
     </div>
 </div>
 
-<!-- 通用選擇 Modal（供 新增收藏 / 獨立查詢 共用） -->
+<!-- 查詢專用 Modal -->
 <div id="commonModal" class="modal">
     <div class="modal-content">
-        <div class="modal-title" id="modalTitle">選擇車站</div>
+        <div class="modal-title">查詢車站班次</div>
         <div class="select-group">
             <label>選擇路線：</label>
             <select id="lineSelect" onchange="updateStationOptions()"></select>
@@ -201,7 +209,7 @@
             <select id="stationSelect"></select>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="btn btn-success" style="flex:1;" onclick="handleModalConfirm()">確認</button>
+            <button class="btn btn-success" style="flex:1;" onclick="handleModalConfirm()">確認查詢</button>
             <button class="btn" style="flex:1; background-color: #3a3a3c;" onclick="closeModal()">取消</button>
         </div>
     </div>
@@ -229,9 +237,7 @@
         "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"]
     };
 
-    // 狀態管理
-    let modalMode = "add"; // 'add' 或 'query'
-    let currentSearchedStation = null; // 儲存畫面下方臨時查詢的車站資料
+    let currentSearchedStation = null; // 暫存臨時查詢車站
 
     function getFavorites() {
         let favs = localStorage.getItem("mtr_web_favorites");
@@ -245,11 +251,14 @@
     }
 
     async function renderDashboard() {
+        // 更新右上角全域最後更新時間
+        let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById("global-update-time").innerText = nowStr;
+
         renderFavoritesList();
         renderSearchedList();
     }
 
-    // 渲染「我的收藏」列表
     async function renderFavoritesList() {
         let favs = getFavorites();
         let container = document.getElementById("favorites-list");
@@ -274,20 +283,18 @@
                 <div class="card-header">
                     <span class="station-title">🚝 ${fav.stationName}站 ⭐</span>
                     <div class="card-actions">
-                        <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="addFavoriteFromCard('${fav.lineCode}', '${fav.stationCode}', '${fav.stationName}')">收藏</button>
+                        <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="addFavorite('${fav.lineCode}', '${fav.stationCode}', '${fav.stationName}')">收藏</button>
                         <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="removeFavorite(${i})">刪除</button>
-                        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal('query')">查詢</button>
+                        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal()">查詢</button>
                     </div>
                 </div>
                 <div id="${cardId}">載入班次中...</div>
-                <div class="footer-info" id="time-fav-${i}">更新中...</div>
             `;
             container.appendChild(card);
-            loadStationSchedule(fav.lineCode, fav.stationCode, cardId, `time-fav-${i}`);
+            loadStationSchedule(fav.lineCode, fav.stationCode, cardId);
         }
     }
 
-    // 渲染「臨時查詢」列表（顯示於畫面最下方）
     async function renderSearchedList() {
         let section = document.getElementById("searched-section");
         let container = document.getElementById("searched-list");
@@ -312,20 +319,19 @@
             <div class="card-header">
                 <span class="station-title">🚝 ${station.stationName}站</span>
                 <div class="card-actions">
-                    <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="addFavoriteFromCard('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button>
+                    <!-- 當在臨時查詢按下收藏後，會同時將該站加入收藏並自動清空此臨時區塊 -->
+                    <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="saveSearchedToFavorites('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button>
                     <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearSearchedStation()">刪除</button>
-                    <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal('query')">查詢</button>
+                    <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal()">查詢</button>
                 </div>
             </div>
             <div id="${cardId}">載入班次中...</div>
-            <div class="footer-info" id="time-search-0">更新中...</div>
         `;
         container.appendChild(card);
-        loadStationSchedule(station.lineCode, station.stationCode, cardId, `time-search-0`);
+        loadStationSchedule(station.lineCode, station.stationCode, cardId);
     }
 
-    // 載入班次共用函式（非轉車站顯示 3 個，轉車站顯示 6 個）
-    async function loadStationSchedule(lineCode, stationCode, elementId, timeElementId) {
+    async function loadStationSchedule(lineCode, stationCode, elementId) {
         let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined;
         let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode];
         let allTrains = [];
@@ -361,9 +367,6 @@
 
         allTrains.sort((a, b) => a.rawTime - b.rawTime);
         let el = document.getElementById(elementId);
-        let timeEl = document.getElementById(timeElementId);
-        let updateTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        if (timeEl) timeEl.innerText = `最後更新: ${updateTimeStr}`;
 
         if (allTrains.length > 0) {
             let html = "";
@@ -404,11 +407,7 @@
         return destCode;
     }
 
-    // Modal 控制
-    function openModal(mode) {
-        modalMode = mode;
-        document.getElementById("modalTitle").innerText = mode === 'add' ? "新增車站收藏" : "查詢車站班次";
-        
+    function openModal() {
         let lineSel = document.getElementById("lineSelect");
         lineSel.innerHTML = "";
         for (let lKey in MTR_LINES) {
@@ -432,35 +431,19 @@
         }
     }
 
-    // Modal 確認按鈕邏輯分流
+    // Modal 確認：執行查詢並顯示在下方臨時區塊
     function handleModalConfirm() {
         let lineKey = document.getElementById("lineSelect").value;
         let sCode = document.getElementById("stationSelect").value;
         let sName = MTR_LINES[lineKey].stations[sCode];
 
-        if (modalMode === 'add') {
-            let favs = getFavorites();
-            if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
-                alert("此車站已經在收藏中！");
-                return;
-            }
-            if (favs.length >= 3) {
-                alert("收藏上限為 3 個車站！");
-                return;
-            }
-            favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
-            saveFavorites(favs);
-        } else {
-            // 查詢模式：將結果顯示於畫面最下方
-            currentSearchedStation = { lineCode: lineKey, stationCode: sCode, stationName: sName };
-        }
-
+        currentSearchedStation = { lineCode: lineKey, stationCode: sCode, stationName: sName };
         closeModal();
         renderDashboard();
     }
 
-    // 從卡片直接加入收藏
-    function addFavoriteFromCard(lineKey, sCode, sName) {
+    // 一般收藏加入
+    function addFavorite(lineKey, sCode, sName) {
         let favs = getFavorites();
         if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
             alert("此車站已經在收藏中！");
@@ -472,6 +455,22 @@
         }
         favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
         saveFavorites(favs);
+        renderDashboard();
+    }
+
+    // 臨時查詢區塊按「收藏」：加入收藏並自動清空臨時查詢內容
+    function saveSearchedToFavorites(lineKey, sCode, sName) {
+        let favs = getFavorites();
+        if (!favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
+            if (favs.length >= 3) {
+                alert("收藏上限為 3 個車站！");
+                return;
+            }
+            favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
+            saveFavorites(favs);
+        }
+        // 清空臨時查詢內容
+        currentSearchedStation = null;
         renderDashboard();
     }
 
