@@ -40,7 +40,6 @@
             align-items: center;
             gap: 8px;
         }
-        /* 直接使用符號作為 Logo，永遠不會破圖 */
         .logo-symbol {
             font-size: 32px;
             line-height: 1;
@@ -50,14 +49,23 @@
             margin: 0;
             line-height: 1.2;
         }
-        .header-time {
-            font-size: 13px;
-            font-weight: bold;
-            color: #ffffff;
+        .header-right {
             text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .header-time {
+            font-size: 11px;
+            color: var(--text-sub);
             white-space: nowrap;
         }
-        /* 以下樣式維持不變，確保運作流暢 */
+        .weather-info {
+            font-size: 12px;
+            color: #ffffff;
+            font-weight: 500;
+            white-space: nowrap;
+        }
         .btn { background-color: #2c2c2e; color: var(--text-main); border: none; padding: 6px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: background 0.2s; }
         .btn:hover { background-color: #3a3a3c; }
         .btn-primary { background-color: #1c58d9; }
@@ -96,7 +104,10 @@
             <span class="logo-symbol">🚇</span>
             <h1>MTR 即時班次</h1>
         </div>
-        <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
+        <div class="header-right">
+            <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
+            <div id="weather-box" class="weather-info">天氣載入中...</div>
+        </div>
     </header>
 
     <div id="favorites-section">
@@ -129,7 +140,6 @@
 </div>
 
 <script>
-    // ... 原有 JavaScript 邏輯保持不變 ...
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
@@ -144,13 +154,42 @@
     };
     const TRANSFER_STATIONS = { "ADM": ["TWL", "ISL", "EAL", "SIL"], "NOP": ["TKL", "ISL"], "PRE": ["TWL", "KTL"], "MKK": ["TWL", "KTL"], "YMT": ["TWL", "KTL"], "TIK": ["TKL", "KTL"], "LAK": ["TWL", "TCL"], "NAC": ["TCL", "TML"], "MEF": ["TWL", "TML"], "DIH": ["KTL", "TML"], "HOM": ["KTL", "TML"], "TAW": ["EAL", "TML"], "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"] };
     let currentSearchedStation = null;
+
     function getFavorites() { let favs = localStorage.getItem("mtr_web_favorites"); return favs ? JSON.parse(favs) : [{ lineCode: "TKL", stationCode: "LHP", stationName: "康城" }, { lineCode: "TWL", stationCode: "ADM", stationName: "金鐘" }]; }
     function saveFavorites(favs) { localStorage.setItem("mtr_web_favorites", JSON.stringify(favs)); }
-    async function renderDashboard() { let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); document.getElementById("global-update-time").innerText = `更新時間: ${nowStr}`; renderFavoritesList(); renderSearchedList(); }
+
+    async function renderDashboard() {
+        let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById("global-update-time").innerText = `更新時間: ${nowStr}`;
+        
+        // 非同步獨立載入天氣，失敗也不影響下方班次
+        loadWeatherInfo();
+        
+        renderFavoritesList();
+        renderSearchedList();
+    }
+
+    // 獨立且受保護的天氣載入模組
+    async function loadWeatherInfo() {
+        let weatherBox = document.getElementById("weather-box");
+        try {
+            let res = await fetch("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrh&lang=tc");
+            if (!res.ok) throw new Error("API 異常");
+            let json = await res.json();
+            
+            let temp = json.temperature?.data?.[0]?.value ?? "--";
+            let humidity = json.humidity?.data?.[0]?.value ?? "--";
+            
+            weatherBox.innerHTML = `🌡️ ${temp}°C  💧 ${humidity}%`;
+        } catch (e) {
+            weatherBox.innerHTML = `🌤️ 天氣暫不提供`;
+        }
+    }
+
     async function renderFavoritesList() { let favs = getFavorites(); let container = document.getElementById("favorites-list"); container.innerHTML = ""; if (favs.length === 0) { container.innerHTML = `<p style="text-align:center; color: var(--text-sub);">尚未收藏任何車站。</p>`; return; } for (let i = 0; i < favs.length; i++) { let fav = favs[i]; let cardId = `fav-card-${i}`; let lineObj = MTR_LINES[fav.lineCode]; let lineHexColor = lineObj ? lineObj.color : "#555"; let card = document.createElement("div"); card.className = "card"; card.style.borderLeftColor = lineHexColor; card.innerHTML = `<div class="card-header"><span class="station-title">🚝 ${fav.stationName}站 ⭐</span><div class="card-actions"><button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="addFavorite('${fav.lineCode}', '${fav.stationCode}', '${fav.stationName}')">收藏</button><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="removeFavorite(${i})">刪除</button><button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal()">查詢</button></div></div><div id="${cardId}">載入班次中...</div>`; container.appendChild(card); loadStationSchedule(fav.lineCode, fav.stationCode, cardId); } }
     async function renderSearchedList() { let section = document.getElementById("searched-section"); let container = document.getElementById("searched-list"); container.innerHTML = ""; if (!currentSearchedStation) { section.style.display = "none"; return; } section.style.display = "block"; let station = currentSearchedStation; let cardId = `search-card-0`; let lineObj = MTR_LINES[station.lineCode]; let lineHexColor = lineObj ? lineObj.color : "#555"; let card = document.createElement("div"); card.className = "card"; card.style.borderLeftColor = lineHexColor; card.innerHTML = `<div class="card-header"><span class="station-title">🚝 ${station.stationName}站</span><div class="card-actions"><button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="saveSearchedToFavorites('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearSearchedStation()">刪除</button><button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal()">查詢</button></div></div><div id="${cardId}">載入班次中...</div>`; container.appendChild(card); loadStationSchedule(station.lineCode, station.stationCode, cardId); }
     async function loadStationSchedule(lineCode, stationCode, elementId) { let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined; let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode]; let allTrains = []; let now = new Date(); for (let lCode of linesToFetch) { try { let res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${lCode}&sta=${stationCode}`); let json = await res.json(); let key = `${lCode}-${stationCode}`; if (json && json.status === 1 && json.data && json.data[key]) { let sData = json.data[key]; let rawList = (sData.UP || []).concat(sData.DOWN || []); for (let item of rawList) { if (item.time) { let tTime = new Date(item.time.replace(/-/g, "/")); let diffMins = Math.round((tTime - now) / 60000); if (diffMins >= 0) { allTrains.push({ lineCode: lCode, rawTime: tTime, countdown: diffMins, destination: translateDest(item.dest) }); } } } } } catch (e) { console.error(e); } } allTrains.sort((a, b) => a.rawTime - b.rawTime); let el = document.getElementById(elementId); if (allTrains.length > 0) { let html = ""; let displayLimit = isTransfer ? 6 : 3; for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) { let t = allTrains[i]; let lObj = MTR_LINES[t.lineCode]; let timeStr = t.countdown === 0 ? "即將到達" : `${t.countdown} 分鐘`; let timeClass = t.countdown === 0 ? "time-soon" : "time-normal"; html += `<div class="train-row"><div class="train-row-left"><span class="line-badge" style="background-color: ${lObj ? lObj.color : '#333'}">${lObj ? lObj.name : t.lineCode}</span></div><div class="train-row-center ${timeClass}">${timeStr}</div><div class="train-row-right">➔ ${t.destination}</div></div>`; } el.innerHTML = html; } else { el.innerHTML = `<div style="font-size:13px; color: var(--danger);">目前尚無即時班次或收車中</div>`; } }
-    function translateDest(destCode) { if (!destCode) return "市區"; const specialDestMap = { "KET": "堅尼地城", "KEF": "堅尼地城", "NOP": "北角", "QUO": "鰂魚涌", "CEN": "中環", "ADM": "金鐘", "TIK": "調景嶺", "LHP": "康城", "POA": "寶琳", "TSW": "荃灣", "PRE": "太子", "MKK": "旺角", "WHA": "黃埔", "TUC": "東涌", "SUN": "欣澳", "DIS": "迪士尼", "AIR": "機場", "AWE": "博覽館", "LOW": "羅湖", "LMC": "落馬洲", "HUH": "紅磡", "TAW": "大圍", "SHS": "上水", "TUM": "屯門", "WKS": "烏溪沙" }; if (specialDestMap[destCode]) return specialDestMap[destCode]; for (let l in MTR_LINES) { if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode]; } return destCode; }
+    function translateDest(destCode) { if (!destCode) return "市區"; const specialDestMap = { "KET": "堅尼地城", "KEF": "堅尼地城", "NOP": "北角", "QUO": "鰂魚涌", "CEN": "中環", "ADM": "金鐘", "TIK": "調景嶺", "LHP": "康城", "POA": "寶琳", "TSW": "荃灣", "PRE": "太子", "MKK": "旺角", "WHA": "黃埔", "TUC": "東涌", "SUN": "欣澳", "DIS": "迪士尼", "AIR": "機場", "AWE": "博覽館", "LOW": "羅湖", "LMC": "落馬洲", "HUH": "紅磡", "TAW": "大圍", "SHS": "上水", "TUM": "屯門", "WKS": "烏溪沙" }; if (specialDestMap[destCode]) return specialDestMap[specialDestMap[destCode] ? destCode : ''] || specialDestMap[destCode]; for (let l in MTR_LINES) { if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode]; } return destCode; }
     function openModal() { let lineSel = document.getElementById("lineSelect"); lineSel.innerHTML = ""; for (let lKey in MTR_LINES) { lineSel.innerHTML += `<option value="${lKey}">${MTR_LINES[lKey].name}</option>`; } updateStationOptions(); document.getElementById("commonModal").style.display = "flex"; }
     function closeModal() { document.getElementById("commonModal").style.display = "none"; }
     function updateStationOptions() { let lineKey = document.getElementById("lineSelect").value; let staSel = document.getElementById("stationSelect"); staSel.innerHTML = ""; let stations = MTR_LINES[lineKey].stations; for (let sCode in stations) { staSel.options.add(new Option(stations[sCode], sCode)); } }
@@ -159,7 +198,9 @@
     function saveSearchedToFavorites(lineKey, sCode, sName) { let favs = getFavorites(); if (!favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) { if (favs.length >= 3) { alert("收藏上限為 3 個車站！"); return; } favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName }); saveFavorites(favs); } currentSearchedStation = null; renderDashboard(); }
     function removeFavorite(index) { let favs = getFavorites(); favs.splice(index, 1); saveFavorites(favs); renderDashboard(); }
     function clearSearchedStation() { currentSearchedStation = null; renderDashboard(); }
-    renderDashboard(); setInterval(renderDashboard, 30000);
+
+    renderDashboard(); 
+    setInterval(renderDashboard, 30000);
 </script>
 </body>
 </html>
