@@ -2,328 +2,379 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPhone Dashboard - 完美終極版</title>
-    <!-- 引入 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Lucide 圖標庫 -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTR 即時班次 Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1c1c1e;
+            --text-main: #ffffff;
+            --text-sub: #8e8e93;
+            --accent: #34c759;
+            --warn: #ff9f0a;
+            --danger: #ff3b30;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+        }
+        .btn {
+            background-color: #2c2c2e;
+            color: var(--text-main);
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background-color: #3a3a3c;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #2c2c2e;
+            padding-bottom: 8px;
+        }
+        .station-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .train-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .line-badge {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .time-soon {
+            color: var(--warn);
+            font-weight: bold;
+        }
+        .time-normal {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        .footer-info {
+            font-size: 11px;
+            color: var(--text-sub);
+            text-align: right;
+            margin-top: 8px;
+        }
+        /* Modal 彈窗樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            padding: 20px;
+            box-sizing: border-box;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .select-group {
+            margin-bottom: 12px;
+        }
+        label {
+            font-size: 13px;
+            color: var(--text-sub);
+            display: block;
+            margin-bottom: 4px;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #2c2c2e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 h-screen w-screen overflow-hidden flex flex-col p-4">
+<body>
 
-    <!-- 頂部標題 -->
-    <header class="mb-3 flex justify-between items-center">
-        <h1 class="text-xl font-bold text-gray-800">我的智能 Dashboard</h1>
-        <span id="gps-status" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">定位中...</span>
+<div class="container">
+    <header>
+        <h1>🚝 MTR 即時班次看板</h1>
+        <button class="btn" onclick="openAddModal()">＋ 新增收藏</button>
     </header>
 
-    <!-- 主體格線排版 (左上天氣、左下電台、右邊地鐵) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 h-[calc(100%-3rem)]">
-        
-        <!-- 左側：天氣 (上) + 電台 (下) -->
-        <div class="flex flex-col gap-4 h-full">
-            
-            <!-- 1. 天氣卡片 (左上) -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col justify-between flex-1 border border-gray-100">
-                <div class="flex justify-between items-start">
-                    <span class="text-sm font-semibold text-gray-400">即時天氣 (天文台)</span>
-                    <i data-lucide="sun" class="text-orange-500 w-8 h-8"></i>
-                </div>
-                <div>
-                    <h2 id="location-name" class="text-lg font-bold text-gray-800">香港定位中</h2>
-                    <div class="flex items-baseline gap-2 mt-1">
-                        <span class="text-4xl font-extrabold text-gray-900">28°C</span>
-                        <span class="text-sm text-gray-500">大致天晴</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. 電台卡片 (左下，修正串流相容性) -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col justify-between flex-1 border border-gray-100">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold text-gray-400">電台頻道</span>
-                    <i data-lucide="radio" class="text-blue-500 w-5 h-5"></i>
-                </div>
-                <div>
-                    <select id="radio-select" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
-                        <optgroup label="香港電台">
-                            <option value="https://rthk.ice.infomaniak.ch/rthk-radio1.mp3">香港電台 第一台</option>
-                            <option value="https://rthk.ice.infomaniak.ch/rthk-radio2.mp3">香港電台 第二台</option>
-                            <option value="https://rthk.ice.infomaniak.ch/rthk-radio4.mp3">香港電台 第四台</option>
-                        </optgroup>
-                        <optgroup label="商業電台與新城">
-                            <option value="https://audio.881903.com/live/cr1/playlist.m3u8">商業電台 881 (建議用 Safari)</option>
-                            <option value="https://audio.881903.com/live/cr2/playlist.m3u8">商業電台 903 (建議用 Safari)</option>
-                            <option value="https://stream.metroradio.com.hk/metro838">新城知訊台</option>
-                        </optgroup>
-                    </select>
-                </div>
-                
-                <audio id="radio-player" preload="none"></audio>
-                
-                <div class="flex items-center justify-between">
-                    <div class="text-xs text-blue-600 font-medium flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        狀態：<span id="player-status" class="font-bold">已暫停</span>
-                    </div>
-                    <button id="play-btn" class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow hover:bg-blue-700 transition">播放 / 暫停</button>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- 右側：地鐵即時班次 (優化方向顯示) -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col h-full border border-gray-100">
-            <div class="flex justify-between items-center mb-3">
-                <span class="text-sm font-semibold text-gray-400">港鐵即時班次</span>
-                <select id="mtr-station-select" class="bg-gray-50 border border-gray-200 text-gray-800 text-xs rounded-lg p-2 max-w-[150px]">
-                    
-                    <optgroup label="港島線">
-                        <option value="堅尼地城">堅尼地城</option>
-                        <option value="香港大學">香港大學</option>
-                        <option value="西營盤">西營盤</option>
-                        <option value="上環">上環</option>
-                        <option value="中環" selected>中環</option>
-                        <option value="金鐘">金鐘</option>
-                        <option value="灣仔">灣仔</option>
-                        <option value="銅鑼灣">銅鑼灣</option>
-                        <option value="天后">天后</option>
-                        <option value="炮台山">炮台山</option>
-                        <option value="北角">北角</option>
-                        <option value="鰂魚涌">鰂魚涌</option>
-                        <option value="太古">太古</option>
-                        <option value="西灣河">西灣河</option>
-                        <option value="筲箕灣">筲箕灣</option>
-                        <option value="杏花邨">杏花邨</option>
-                        <option value="柴灣">柴灣</option>
-                    </optgroup>
-
-                    <optgroup label="荃灣線">
-                        <option value="尖沙咀">尖沙咀</option>
-                        <option value="佐敦">佐敦</option>
-                        <option value="油麻地">油麻地</option>
-                        <option value="旺角">旺角</option>
-                        <option value="太子">太子</option>
-                        <option value="深水埗">深水埗</option>
-                        <option value="長沙灣">長沙灣</option>
-                        <option value="荔枝角">荔枝角</option>
-                        <option value="美孚">美孚</option>
-                        <option value="葵芳">葵芳</option>
-                        <option value="葵興">葵興</option>
-                        <option value="大窩口">大窩口</option>
-                        <option value="荃灣">荃灣</option>
-                    </optgroup>
-
-                    <optgroup label="觀塘線">
-                        <option value="黃埔">黃埔</option>
-                        <option value="何文田">何文田</option>
-                        <option value="油麻地">油麻地</option>
-                        <option value="旺角">旺角</option>
-                        <option value="太子">太子</option>
-                        <option value="石硤尾">石硤尾</option>
-                        <option value="九龍塘">九龍塘</option>
-                        <option value="樂富">樂富</option>
-                        <option value="黃大仙">黃大仙</option>
-                        <option value="鑽石山">鑽石山</option>
-                        <option value="九龍灣">九龍灣</option>
-                        <option value="牛頭角">牛頭角</option>
-                        <option value="觀塘">觀塘</option>
-                        <option value="藍田">藍田</option>
-                        <option value="油塘">油塘</option>
-                        <option value="調景嶺">調景嶺</option>
-                    </optgroup>
-
-                    <optgroup label="將軍澳線">
-                        <option value="北角">北角</option>
-                        <option value="鰂魚涌">鰂魚涌</option>
-                        <option value="油塘">油塘</option>
-                        <option value="調景嶺">調景嶺</option>
-                        <option value="將軍澳">將軍澳</option>
-                        <option value="坑口">坑口</option>
-                        <option value="寶琳">寶琳</option>
-                        <option value="康城">康城</option>
-                    </optgroup>
-
-                    <optgroup label="東鐵線">
-                        <option value="金鐘">金鐘</option>
-                        <option value="會展">會展</option>
-                        <option value="紅磡">紅磡</option>
-                        <option value="旺角東">旺角東</option>
-                        <option value="九龍塘">九龍塘</option>
-                        <option value="大圍">大圍</option>
-                        <option value="沙田">沙田</option>
-                        <option value="火炭">火炭</option>
-                        <option value="馬場">馬場</option>
-                        <option value="大學">大學</option>
-                        <option value="大埔墟">大埔墟</option>
-                        <option value="太和">太和</option>
-                        <option value="粉嶺">粉嶺</option>
-                        <option value="上水">上水</option>
-                        <option value="羅湖">羅湖</option>
-                        <option value="落馬洲">落馬洲</option>
-                    </optgroup>
-
-                    <optgroup label="屯馬線">
-                        <option value="烏溪沙">烏溪沙</option>
-                        <option value="馬鞍山">馬鞍山</option>
-                        <option value="恆安">恆安</option>
-                        <option value="大水坑">大水坑</option>
-                        <option value="石門">石門</option>
-                        <option value="第一城">第一城</option>
-                        <option value="沙田圍">沙田圍</option>
-                        <option value="車公廟">車公廟</option>
-                        <option value="大圍">大圍</option>
-                        <option value="顯徑">顯徑</option>
-                        <option value="鑽石山">鑽石山</option>
-                        <option value="啟德">啟德</option>
-                        <option value="宋皇臺">宋皇臺</option>
-                        <option value="土瓜灣">土瓜灣</option>
-                        <option value="何文田">何文田</option>
-                        <option value="紅磡">紅磡</option>
-                        <option value="尖東">尖東</option>
-                        <option value="柯士甸">柯士甸</option>
-                        <option value="南昌">南昌</option>
-                        <option value="美孚">美孚</option>
-                        <option value="荃灣西">荃灣西</option>
-                        <option value="錦上路">錦上路</option>
-                        <option value="元朗">元朗</option>
-                        <option value="朗屏">朗屏</option>
-                        <option value="天水圍">天水圍</option>
-                        <option value="兆康">兆康</option>
-                        <option value="屯門">屯門</option>
-                    </optgroup>
-
-                    <optgroup label="東涌線">
-                        <option value="香港">香港</option>
-                        <option value="九龍">九龍</option>
-                        <option value="奧運">奧運</option>
-                        <option value="南昌">南昌</option>
-                        <option value="荔景">荔景</option>
-                        <option value="青衣">青衣</option>
-                        <option value="欣澳">欣澳</option>
-                        <option value="東涌">東涌</option>
-                    </optgroup>
-
-                    <optgroup label="機場快線">
-                        <option value="香港">香港</option>
-                        <option value="九龍">九龍</option>
-                        <option value="青衣">青衣</option>
-                        <option value="機場">機場</option>
-                        <option value="博覽館">博覽館</option>
-                    </optgroup>
-
-                    <optgroup label="南港島線">
-                        <option value="金鐘">金鐘</option>
-                        <option value="海洋公園">海洋公園</option>
-                        <option value="黃竹坑">黃竹坑</option>
-                        <option value="利東">利東</option>
-                        <option value="海怡半島">海怡半島</option>
-                    </optgroup>
-
-                    <optgroup label="迪士尼線">
-                        <option value="欣澳">欣澳</option>
-                        <option value="迪士尼">迪士尼</option>
-                    </optgroup>
-
-                </select>
-            </div>
-            
-            <div class="flex flex-col gap-3 flex-1 overflow-y-auto">
-                <div class="bg-gray-50 p-3 rounded-xl">
-                    <div class="text-xs font-bold text-blue-600 mb-2"><span id="dir-1-label">中環 往 堅尼地城 方向</span></div>
-                    <div class="flex gap-2">
-                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">2 分鐘</span>
-                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">5 分鐘</span>
-                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">9 分鐘</span>
-                    </div>
-                </div>
-
-                <div class="bg-gray-50 p-3 rounded-xl">
-                    <div class="text-xs font-bold text-red-600 mb-2"><span id="dir-2-label">中環 往 柴灣 方向</span></div>
-                    <div class="flex gap-2">
-                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">1 分鐘</span>
-                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">6 分鐘</span>
-                        <span class="bg-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-xs text-gray-700">11 分鐘</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <!-- 收藏車站列表容器 -->
+    <div id="favorites-list">
+        <p style="text-align:center; color: var(--text-sub);">載入中...</p>
     </div>
+</div>
 
-    <!-- JavaScript 邏輯 -->
-    <script>
-        lucide.createIcons();
+<!-- 新增收藏 Modal -->
+<div id="addModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">新增車站收藏</div>
+        <div class="select-group">
+            <label>選擇路線：</label>
+            <select id="lineSelect" onchange="updateStationOptions()">
+                <!-- 動態填入 -->
+            </select>
+        </div>
+        <div class="select-group">
+            <label>選擇車站：</label>
+            <select id="stationSelect">
+                <!-- 動態填入 -->
+            </select>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn" style="flex:1; background-color: #34c759;" onclick="saveNewFavorite()">確認收藏</button>
+            <button class="btn" style="flex:1; background-color: #3a3a3c;" onclick="closeAddModal()">取消</button>
+        </div>
+    </div>
+</div>
 
-        // 1. GPS 定位
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                () => document.getElementById('gps-status').innerText = "GPS 已連線",
-                () => document.getElementById('gps-status').innerText = "預設位置"
-            );
+<script>
+    // 10大路線與車站資料
+    const MTR_LINES = {
+        "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
+        "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
+        "ISL": { name: "港島線", color: "#0072bc", stations: { "KEF": "堅尼地城", "HKU": "香港大學", "SYP": "西營盤", "SHW": "上環", "CEN": "中環", "ADM": "金鐘", "WAC": "灣仔", "CAB": "銅鑼灣", "TIH": "天后", "FOH": "炮台山", "NOP": "北角", "QUO": "鰂魚涌", "TAK": "太古", "SWH": "西灣河", "SKW": "筲箕灣", "HFC": "杏花邨", "CHW": "柴灣" } },
+        "SIL": { name: "南港島線", color: "#b9d233", stations: { "ADM": "金鐘", "OCP": "海洋公園", "WCH": "黃竹坑", "LET": "利東", "SOH": "海怡半島" } },
+        "TKL": { name: "將軍澳線", color: "#7e3d8f", stations: { "NOP": "北角", "QUO": "鰂魚涌", "YAT": "油塘", "TIK": "調景嶺", "TKO": "將軍澳", "HAH": "坑口", "POA": "寶琳", "LHP": "康城" } },
+        "TCL": { name: "東涌線", color: "#f3823a", stations: { "HKG": "香港", "NAC": "九龍", "OLY": "奧運", "NAC_ST": "南昌", "LAK": "荔景", "TSY": "青衣", "SUN": "欣澳", "TUC": "東涌" } },
+        "DRL": { name: "迪士尼線", color: "#ec639b", stations: { "SUN": "欣澳", "DIS": "迪士尼" } },
+        "AEL": { name: "機場快線", color: "#00afad", stations: { "HKG": "香港", "KOW": "九龍", "TSY": "青衣", "AIR": "機場", "AWE": "博覽館" } },
+        "EAL": { name: "東鐵線", color: "#53bfe2", stations: { "ADM": "金鐘", "EXC": "會展", "HUH": "紅磡", "MKK": "旺角東", "KOT": "九龍塘", "TAW": "大圍", "SHT": "沙田", "NOS": "火炭", "UNI": "大學", "TAP": "大埔墟", "TWO": "太和", "FAN": "粉嶺", "SHS": "上水", "LOW": "羅湖", "LMC": "落馬洲" } },
+        "TML": { name: "屯馬線", color: "#993d00", stations: { "WKS": "烏溪沙", "MOS": "馬鞍山", "HEA": "恆安", "STW": "大水坑", "CIO": "石門", "CKT": "第一城", "STT": "沙田圍", "TKW_C": "車公廟", "TAW": "大圍", "HIK": "顯徑", "DIH": "鑽石山", "KAT": "啟德", "SUW": "宋皇臺", "TKW": "土瓜灣", "HOM": "何文田", "HUH": "紅磡", "ETS": "尖東", "AUS": "柯士甸", "NAC": "南昌", "MEF": "美孚", "TWW": "荃灣西", "KSR": "錦上路", "YUL": "元朗", "LUM": "朗屏", "SIH": "兆康", "TUM": "屯門" } }
+    };
+
+    const TRANSFER_STATIONS = {
+        "ADM": ["TWL", "ISL", "EAL", "SIL"], "NOP": ["TKL", "ISL"], "PRE": ["TWL", "KTL"],
+        "MKK": ["TWL", "KTL"], "YMT": ["TWL", "KTL"], "TIK": ["TKL", "KTL"],
+        "LAK": ["TWL", "TCL"], "NAC": ["TCL", "TML"], "MEF": ["TWL", "TML"],
+        "DIH": ["KTL", "TML"], "HOM": ["KTL", "TML"], "TAW": ["EAL", "TML"],
+        "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"]
+    };
+
+    // 本地儲存讀寫
+    function getFavorites() {
+        let favs = localStorage.getItem("mtr_web_favorites");
+        return favs ? JSON.parse(favs) : [
+            { lineCode: "TKL", stationCode: "LHP", stationName: "康城" },
+            { lineCode: "TWL", stationCode: "ADM", stationName: "金鐘" }
+        ];
+    }
+    function saveFavorites(favs) {
+        localStorage.setItem("mtr_web_favorites", JSON.stringify(favs));
+    }
+
+    // 初始化渲染
+    async function renderDashboard() {
+        let favs = getFavorites();
+        let container = document.getElementById("favorites-list");
+        container.innerHTML = "";
+
+        if (favs.length === 0) {
+            container.innerHTML = `<p style="text-align:center; color: var(--text-sub);">尚未收藏任何車站，請點擊右上角新增。</p>`;
+            return;
         }
 
-        // 2. 電台播放與記憶功能
-        const radioSelect = document.getElementById('radio-select');
-        const radioPlayer = document.getElementById('radio-player');
-        const playBtn = document.getElementById('play-btn');
-        const playerStatus = document.getElementById('player-status');
+        for (let i = 0; i < favs.length; i++) {
+            let fav = favs[i];
+            let cardId = `card-${i}`;
+            
+            let card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="station-title">🚝 ${fav.stationName}站 (收藏 ${i+1})</span>
+                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #3a3a3c;" onclick="removeFavorite(${i})">刪除</button>
+                </div>
+                <div id="${cardId}">載入班次中...</div>
+                <div class="footer-info" id="time-${i}">更新中...</div>
+            `;
+            container.appendChild(card);
 
-        const savedRadio = localStorage.getItem('saved_radio_url');
-        if (savedRadio) {
-            radioSelect.value = savedRadio;
+            // 非同步抓取資料
+            loadStationSchedule(fav.lineCode, fav.stationCode, cardId, i);
         }
-        radioPlayer.src = radioSelect.value;
+    }
 
-        let isPlaying = false;
-        playBtn.addEventListener('click', () => {
-            if (isPlaying) {
-                radioPlayer.pause();
-                playerStatus.innerText = "已暫停";
-                playBtn.innerText = "播放";
-                isPlaying = false;
-            } else {
-                radioPlayer.play().then(() => {
-                    playerStatus.innerText = "播放中...";
-                    playBtn.innerText = "暫停";
-                    isPlaying = true;
-                }).catch(e => {
-                    playerStatus.innerText = "播放失敗 (部分電台需用 Safari)";
-                });
+    async function loadStationSchedule(lineCode, stationCode, elementId, index) {
+        let linesToFetch = TRANSFER_STATIONS[stationCode] ? TRANSFER_STATIONS[stationCode] : [lineCode];
+        let allTrains = [];
+        let now = new Date();
+
+        for (let lCode of linesToFetch) {
+            try {
+                let res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${lCode}&sta=${stationCode}`);
+                let json = await res.json();
+                let key = `${lCode}-${stationCode}`;
+                if (json && json.status === 1 && json.data && json.data[key]) {
+                    let sData = json.data[key];
+                    let rawList = (sData.UP || []).concat(sData.DOWN || []);
+                    for (let item of rawList) {
+                        if (item.time) {
+                            let tTime = new Date(item.time.replace(/-/g, "/"));
+                            let diffMins = Math.round((tTime - now) / 60000);
+                            if (diffMins >= 0) {
+                                allTrains.push({
+                                    lineCode: lCode,
+                                    rawTime: tTime,
+                                    countdown: diffMins,
+                                    destination: translateDest(item.dest)
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
             }
-        });
+        }
 
-        radioSelect.addEventListener('change', (e) => {
-            const url = e.target.value;
-            localStorage.setItem('saved_radio_url', url);
-            radioPlayer.src = url;
-            if (isPlaying) {
-                radioPlayer.play();
+        allTrains.sort((a, b) => a.rawTime - b.rawTime);
+        let el = document.getElementById(elementId);
+        let timeEl = document.getElementById(`time-${index}`);
+        let updateTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        timeEl.innerText = `最後更新: ${updateTimeStr}`;
+
+        if (allTrains.length > 0) {
+            let html = "";
+            for (let i = 0; i < Math.min(allTrains.length, 3); i++) {
+                let t = allTrains[i];
+                let lObj = MTR_LINES[t.lineCode];
+                let timeStr = t.countdown === 0 ? "即將到達" : `${t.countdown} 分鐘`;
+                let timeClass = t.countdown === 0 ? "time-soon" : "time-normal";
+                html += `
+                    <div class="train-row">
+                        <span><span class="line-badge" style="background-color: ${lObj ? lObj.color : '#333'}">${lObj ? lObj.name : t.lineCode}</span></span>
+                        <span class="${timeClass}">${timeStr}</span>
+                        <span>➔ ${t.destination}</span>
+                    </div>
+                `;
             }
-        });
+            el.innerHTML = html;
+        } else {
+            el.innerHTML = `<div style="font-size:13px; color: var(--danger);">目前尚無即時班次或收車中</div>`;
+        }
+    }
 
-        // 3. 地鐵站動態方向智能對應
-        const mtrStationSelect = document.getElementById('mtr-station-select');
-        const dir1Label = document.getElementById('dir-1-label');
-        const dir2Label = document.getElementById('dir-2-label');
+    function translateDest(destCode) {
+        if (!destCode) return "市區";
+        for (let l in MTR_LINES) {
+            if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode];
+        }
+        return destCode;
+    }
 
-        // 定義簡單的各站對應方向表 (模擬真實路線兩端)
-        const stationDestinations = {
-            "觀塘": { dir1: "藍田", dir2: "牛頭角" },
-            "中環": { dir1: "堅尼地城", dir2: "金鐘" },
-            "金鐘": { dir1: "中環", dir2: "灣仔" },
-            "旺角": { dir1: "太子", dir2: "油麻地" },
-            "尖沙咀": { dir1: "佐敦", dir2: "金鐘" },
-            "銅鑼灣": { dir1: "天后", dir2: "灣仔" }
-        };
+    function removeFavorite(index) {
+        let favs = getFavorites();
+        favs.splice(index, 1);
+        saveFavorites(favs);
+        renderDashboard();
+    }
 
-        mtrStationSelect.addEventListener('change', (e) => {
-            const station = e.target.value;
-            // 如果字典裡有定義，就顯示精準前後站；若無則顯示通用方向
-            const dest = stationDestinations[station] || { dir1: "上行方向終點", dir2: "下行方向終點" };
-            dir1Label.innerText = `${station} 往 ${dest.dir1} 方向`;
-            dir2Label.innerText = `${station} 往 ${dest.dir2} 方向`;
-        });
-    </script>
+    // Modal 控制與動態選單
+    function openAddModal() {
+        let favs = getFavorites();
+        if (favs.length >= 3) {
+            alert("最多只能收藏 3 個車站！");
+            return;
+        }
+        let lineSel = document.getElementById("lineSelect");
+        lineSel.innerHTML = "";
+        for (let lKey in MTR_LINES) {
+            lineSel.innerHTML += `<option value="${lKey}">${MTR_LINES[lKey].name}</option>`;
+        }
+        updateStationOptions();
+        document.getElementById("addModal").style.display = "flex";
+    }
+
+    function closeAddModal() {
+        document.getElementById("addModal").style.display = "none";
+    }
+
+    function updateStationOptions() {
+        let lineKey = document.getElementById("lineSelect").value;
+        let staSel = document.getElementById("stationSelect");
+        staSel.innerHTML = "";
+        let stations = MTR_LINES[lineKey].stations;
+        for (let sCode in stations) {
+            staSel.innerHTML += `<option value="${sCode}">${stations[sCode]}</option>`;
+        }
+    }
+
+    function saveNewFavorite() {
+        let lineKey = document.getElementById("lineSelect").value;
+        let sCode = document.getElementById("stationSelect").value;
+        let sName = MTR_LINES[lineKey].stations[sCode];
+
+        let favs = getFavorites();
+        if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
+            alert("此車站已經在收藏中！");
+            return;
+        }
+
+        favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
+        saveFavorites(favs);
+        closeAddModal();
+        renderDashboard();
+    }
+
+    // 啟動與自動每 30 秒重新整理
+    renderDashboard();
+    setInterval(renderDashboard, 30000);
+</script>
+
 </body>
 </html>
