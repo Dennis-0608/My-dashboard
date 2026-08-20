@@ -8,9 +8,12 @@
     <!-- iPhone (iOS) PWA 沉浸式專用設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MTR 班次">
 
     <!-- 強制瀏覽器每次讀取最新版本 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 
     <style>
         :root {
@@ -21,6 +24,7 @@
             --accent: #34c759;
             --warn: #ff9f0a;
             --danger: #ff3b30;
+            --primary: #0a84ff;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -49,31 +53,69 @@
             align-items: center;
             gap: 8px;
         }
-        .logo-symbol { font-size: 28px; line-height: 1; }
-        h1 { font-size: 18px; margin: 0; line-height: 1.2; }
+        .logo-symbol {
+            font-size: 32px;
+            line-height: 1;
+        }
+        h1 {
+            font-size: 18px;
+            margin: 0;
+            line-height: 1.2;
+        }
         .header-right {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             gap: 4px;
         }
-        .header-time { font-size: 11px; color: var(--text-sub); font-weight: bold; }
+        .header-time {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-sub);
+            white-space: nowrap;
+        }
         .weather-badge {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             background-color: #2c2c2e;
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 4px 8px;
+            border-radius: 8px;
             font-size: 12px;
             color: #ffffff;
+            font-weight: 500;
         }
+        .weather-icon {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+        .btn {
+            background-color: #2c2c2e;
+            color: var(--text-main);
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: #3a3a3c; }
+        .btn-primary { background-color: #1c58d9; }
+        .btn-primary:hover { background-color: #2368ef; }
+        .btn-success { background-color: #248a3d; }
+        .btn-success:hover { background-color: #2fa14c; }
+        .btn-danger { background-color: #a91d1a; }
+        .btn-danger:hover { background-color: #c92a27; }
+
         .card {
             background-color: var(--card-bg);
             border-radius: 14px;
             padding: 14px;
             margin-bottom: 14px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
             border-left: 6px solid #555;
         }
         .card-header {
@@ -84,27 +126,91 @@
             border-bottom: 1px solid #2c2c2e;
             padding-bottom: 8px;
         }
-        .station-title { font-size: 16px; font-weight: bold; }
+        .station-title {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .card-actions {
+            display: flex;
+            gap: 5px;
+        }
         .train-row {
             display: grid;
-            grid-template-columns: 90px 1fr 90px;
+            grid-template-columns: 100px 1fr 100px;
             align-items: center;
             margin-bottom: 8px;
             font-size: 14px;
         }
         .train-row-left { text-align: left; }
-        .train-row-center { text-align: center; font-weight: bold; }
+        .train-row-center { text-align: center; }
         .train-row-right { text-align: right; }
         .line-badge {
             font-weight: bold;
             padding: 2px 6px;
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 12px;
             color: #ffffff;
             display: inline-block;
         }
-        .time-soon { color: var(--warn); }
-        .time-normal { color: var(--accent); }
+        .time-soon { color: var(--warn); font-weight: bold; }
+        .time-normal { color: var(--accent); font-weight: bold; }
+        .section-label {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin: 12px 0 6px 4px;
+            font-weight: bold;
+        }
+
+        @media screen and (min-width: 600px) and (orientation: landscape) {
+            .container { max-width: 640px; }
+            body { padding: 20px; }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            padding: 20px;
+            box-sizing: border-box;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .select-group {
+            margin-bottom: 12px;
+        }
+        label {
+            font-size: 13px;
+            color: var(--text-sub);
+            display: block;
+            margin-bottom: 4px;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #2c2c2e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -118,131 +224,318 @@
         <div class="header-right">
             <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
             <div id="weather-box" class="weather-badge">
-                <span>天氣連線中...</span>
+                <span>天氣載入中...</span>
             </div>
         </div>
     </header>
 
-    <div class="section-label" style="font-size: 13px; color: var(--text-sub); margin-bottom: 6px; font-weight: bold;">📌 收藏車站</div>
-    <div id="favorites-list">
-        <div class="card">載入班次中...</div>
+    <div style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
+        <button class="btn btn-primary" onclick="openModal()">➕ 查詢其他車站</button>
+    </div>
+
+    <div id="favorites-section">
+        <div class="section-label">📌 我的收藏車站</div>
+        <div id="favorites-list">
+            <p style="text-align:center; color: var(--text-sub);">載入中...</p>
+        </div>
+    </div>
+
+    <div id="searched-section" style="display: none;">
+        <div class="section-label">🔍 臨時查詢車站</div>
+        <div id="searched-list"></div>
+    </div>
+</div>
+
+<div id="commonModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">查詢車站班次</div>
+        <div class="select-group">
+            <label>選擇路線：</label>
+            <select id="lineSelect" onchange="updateStationOptions()"></select>
+        </div>
+        <div class="select-group">
+            <label>選擇車站：</label>
+            <select id="stationSelect"></select>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-success" style="flex:1;" onclick="handleModalConfirm()">確認查詢</button>
+            <button class="btn" style="flex:1; background-color: #3a3a3c;" onclick="closeModal()">取消</button>
+        </div>
     </div>
 </div>
 
 <script>
     const MTR_LINES = {
-        "TWL": { name: "荃灣線", color: "#e2231a", stations: { "ADM": "金鐘", "TST": "尖沙咀", "MKK": "旺角" } },
-        "TKL": { name: "將軍澳線", color: "#7e3d8f", stations: { "LHP": "康城", "TIK": "調景嶺", "TKO": "將軍澳" } },
-        "EAL": { name: "東鐵線", color: "#53bfe2", stations: { "ADM": "金鐘", "HUH": "紅磡", "TAW": "大圍" } }
+        "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
+        "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
+        "ISL": { name: "港島線", color: "#0072bc", stations: { "KEF": "堅尼地城", "HKU": "香港大學", "SYP": "西營盤", "SHW": "上環", "CEN": "中環", "ADM": "金鐘", "WAC": "灣仔", "CAB": "銅鑼灣", "TIH": "天后", "FOH": "炮台山", "NOP": "北角", "QUO": "鰂魚涌", "TAK": "太古", "SWH": "西灣河", "SKW": "筲箕灣", "HFC": "杏花邨", "CHW": "柴灣" } },
+        "SIL": { name: "南港島線", color: "#b9d233", stations: { "ADM": "金鐘", "OCP": "海洋公園", "WCH": "黃竹坑", "LET": "利東", "SOH": "海怡半島" } },
+        "TKL": { name: "將軍澳線", color: "#7e3d8f", stations: { "NOP": "北角", "QUO": "鰂魚涌", "YAT": "油塘", "TIK": "調景嶺", "TKO": "將軍澳", "HAH": "坑口", "POA": "寶琳", "LHP": "康城" } },
+        "TCL": { name: "東涌線", color: "#f3823a", stations: { "HKG": "香港", "NAC": "九龍", "OLY": "奧運", "NAC_ST": "南昌", "LAK": "荔景", "TSY": "青衣", "SUN": "欣澳", "TUC": "東涌" } },
+        "DRL": { name: "迪士尼線", color: "#ec639b", stations: { "SUN": "欣澳", "DIS": "迪士尼" } },
+        "AEL": { name: "機場快線", color: "#00afad", stations: { "HKG": "香港", "KOW": "九龍", "TSY": "青衣", "AIR": "機場", "AWE": "博覽館" } },
+        "EAL": { name: "東鐵線", color: "#53bfe2", stations: { "ADM": "金鐘", "EXC": "會展", "HUH": "紅磡", "MKK": "旺角東", "KOT": "九龍塘", "TAW": "大圍", "SHT": "沙田", "NOS": "火炭", "UNI": "大學", "TAP": "大埔墟", "TWO": "太和", "FAN": "粉嶺", "SHS": "上水", "LOW": "羅湖", "LMC": "落馬洲" } },
+        "TML": { name: "屯馬線", color: "#993d00", stations: { "WKS": "烏溪沙", "MOS": "馬鞍山", "HEA": "恆安", "STW": "大水坑", "CIO": "石門", "CKT": "第一城", "STT": "沙田圍", "TKW_C": "車公廟", "TAW": "大圍", "HIK": "顯徑", "DIH": "鑽石山", "KAT": "啟德", "SUW": "宋皇臺", "TKW": "土瓜灣", "HOM": "何文田", "HUH": "紅磡", "ETS": "尖東", "AUS": "柯士甸", "NAC": "南昌", "MEF": "美孚", "TWW": "荃灣西", "KSR": "錦上路", "YUL": "元朗", "LUM": "朗屏", "SIH": "兆康", "TUM": "屯門" } }
     };
 
-    // 預設收藏示範車站
-    const DEFAULT_FAVS = [
-        { lineCode: "TKL", stationCode: "LHP", stationName: "康城" },
-        { lineCode: "TWL", stationCode: "ADM", stationName: "金鐘" }
-    ];
+    const TRANSFER_STATIONS = {
+        "ADM": ["TWL", "ISL", "EAL", "SIL"], "NOP": ["TKL", "ISL"], "PRE": ["TWL", "KTL"],
+        "MKK": ["TWL", "KTL"], "YMT": ["TWL", "KTL"], "TIK": ["TKL", "KTL"],
+        "LAK": ["TWL", "TCL"], "NAC": ["TCL", "TML"], "MEF": ["TWL", "TML"],
+        "DIH": ["KTL", "TML"], "HOM": ["KTL", "TML"], "TAW": ["EAL", "TML"],
+        "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"]
+    };
 
-    async function initDashboard() {
-        // 1. 更新畫面上方時間
-        const nowStr = new Date().toLocaleTimeString('zh-HK', { hour12: false });
-        document.getElementById("global-update-time").innerText = `更新時間: ${nowStr}`;
+    let currentSearchedStation = null;
 
-        // 2. 非同步抓取天氣（加上完整防護，失敗時自動顯示提示，不影響下方運作）
-        fetchWeatherSafely();
-
-        // 3. 渲染車站班次
-        renderStations();
+    function getFavorites() {
+        let favs = localStorage.getItem("mtr_web_favorites");
+        return favs ? JSON.parse(favs) : [
+            { lineCode: "TKL", stationCode: "LHP", stationName: "康城" },
+            { lineCode: "TWL", stationCode: "ADM", stationName: "金鐘" }
+        ];
+    }
+    function saveFavorites(favs) {
+        localStorage.setItem("mtr_web_favorites", JSON.stringify(favs));
     }
 
-    async function fetchWeatherSafely() {
-        const weatherBox = document.getElementById("weather-box");
+    async function renderDashboard() {
+        let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById("global-update-time").innerText = `更新時間: ${nowStr}`;
+
+        loadWeatherInfo();
+        renderFavoritesList();
+        renderSearchedList();
+    }
+
+    // 穩健的天文台天氣抓取邏輯（加入嚴格防護，絕不影響主程式）
+    async function loadWeatherInfo() {
+        let weatherBox = document.getElementById("weather-box");
         try {
-            // 使用備用公開途徑或直接請求天文台資料
-            const res = await fetch("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrh&lang=tc", { cache: "no-cache" });
-            if (!res.ok) throw new Error("API 回應異常");
-            const data = await res.json();
+            let res = await fetch("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrh&lang=tc");
+            if (!res.ok) throw new Error("API 異常");
+            let json = await res.json();
             
-            const temp = data.temperature?.data?.[0]?.value ?? "--";
-            const hum = data.humidity?.data?.[0]?.value ?? "--";
-            
-            weatherBox.innerHTML = `<span>🌡️ ${temp}°C 💧${hum}%</span>`;
-        } catch (err) {
-            // 如果天氣讀取失敗，優雅地顯示提示，不再讓畫面變黑或報錯
-            weatherBox.innerHTML = `<span style="color: var(--text-sub);">天氣暫不提供</span>`;
+            let humidity = json.humidity?.data?.[0]?.value ?? "--";
+            let temp = json.temperature?.data?.[0]?.value ?? "--";
+            let iconNo = json.icon?.[0] ?? 50;
+            let iconUrl = `https://www.hko.gov.hk/images/HKOWxIcon/pic${iconNo}.png`;
+
+            weatherBox.innerHTML = `
+                <img src="${iconUrl}" class="weather-icon" alt="天氣" onerror="this.style.display='none'">
+                <span>${temp}°C 💧${humidity}%</span>
+            `;
+        } catch (e) {
+            weatherBox.innerHTML = `<span>天氣暫無法顯示</span>`;
         }
     }
 
-    async function renderStations() {
-        const container = document.getElementById("favorites-list");
+    async function renderFavoritesList() {
+        let favs = getFavorites();
+        let container = document.getElementById("favorites-list");
         container.innerHTML = "";
 
-        for (let fav of DEFAULT_FAVS) {
-            const card = document.createElement("div");
+        if (favs.length === 0) {
+            container.innerHTML = `<p style="text-align:center; color: var(--text-sub);">尚未收藏任何車站。</p>`;
+            return;
+        }
+
+        for (let i = 0; i < favs.length; i++) {
+            let fav = favs[i];
+            let cardId = `fav-card-${i}`;
+            let lineObj = MTR_LINES[fav.lineCode];
+            let lineHexColor = lineObj ? lineObj.color : "#555";
+            
+            let card = document.createElement("div");
             card.className = "card";
-            card.style.borderLeftColor = MTR_LINES[fav.lineCode]?.color || "#555";
+            card.style.borderLeftColor = lineHexColor;
             
             card.innerHTML = `
                 <div class="card-header">
-                    <span class="station-title">🚝 ${fav.stationName}站</span>
+                    <span class="station-title">🚝 ${fav.stationName}站 ⭐</span>
+                    <div class="card-actions">
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="removeFavorite(${i})">刪除</button>
+                    </div>
                 </div>
-                <div id="sched-${fav.stationCode}">載入即時班次...</div>
+                <div id="${cardId}">載入班次中...</div>
             `;
             container.appendChild(card);
-            
-            loadSchedule(fav.lineCode, fav.stationCode, `sched-${fav.stationCode}`);
+            loadStationSchedule(fav.lineCode, fav.stationCode, cardId);
         }
     }
 
-    async function loadSchedule(lineCode, stationCode, elementId) {
-        const el = document.getElementById(elementId);
-        try {
-            const res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${lineCode}&sta=${stationCode}`);
-            const json = await res.json();
-            const key = `${lineCode}-${stationCode}`;
+    async function renderSearchedList() {
+        let section = document.getElementById("searched-section");
+        let container = document.getElementById("searched-list");
+        container.innerHTML = "";
 
-            if (json && json.status === 1 && json.data && json.data[key]) {
-                const sData = json.data[key];
-                const trains = (sData.UP || []).concat(sData.DOWN || []);
-                
-                if (trains.length > 0) {
-                    let html = "";
-                    const now = new Date();
-                    // 取前 3 班車
-                    let count = 0;
-                    for (let item of trains) {
-                        if (count >= 3) break;
+        if (!currentSearchedStation) {
+            section.style.display = "none";
+            return;
+        }
+
+        section.style.display = "block";
+        let station = currentSearchedStation;
+        let cardId = `search-card-0`;
+        let lineObj = MTR_LINES[station.lineCode];
+        let lineHexColor = lineObj ? lineObj.color : "#555";
+
+        let card = document.createElement("div");
+        card.className = "card";
+        card.style.borderLeftColor = lineHexColor;
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="station-title">🚝 ${station.stationName}站</span>
+                <div class="card-actions">
+                    <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="saveSearchedToFavorites('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearSearchedStation()">關閉</button>
+                </div>
+            </div>
+            <div id="${cardId}">載入班次中...</div>
+        `;
+        container.appendChild(card);
+        loadStationSchedule(station.lineCode, station.stationCode, cardId);
+    }
+
+    async function loadStationSchedule(lineCode, stationCode, elementId) {
+        let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined;
+        let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode];
+        let allTrains = [];
+        let now = new Date();
+
+        for (let lCode of linesToFetch) {
+            try {
+                let res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${lCode}&sta=${stationCode}`);
+                let json = await res.json();
+                let key = `${lCode}-${stationCode}`;
+                if (json && json.status === 1 && json.data && json.data[key]) {
+                    let sData = json.data[key];
+                    let rawList = (sData.UP || []).concat(sData.DOWN || []);
+                    for (let item of rawList) {
                         if (item.time) {
-                            const tTime = new Date(item.time.replace(/-/g, "/"));
-                            const diffMins = Math.round((tTime - now) / 60000);
+                            let tTime = new Date(item.time.replace(/-/g, "/"));
+                            let diffMins = Math.round((tTime - now) / 60000);
                             if (diffMins >= 0) {
-                                const timeStr = diffMins === 0 ? "即將到達" : `${diffMins} 分鐘`;
-                                const timeClass = diffMins === 0 ? "time-soon" : "time-normal";
-                                const lineObj = MTR_LINES[lineCode];
-                                
-                                html += `
-                                    <div class="train-row">
-                                        <div class="train-row-left"><span class="line-badge" style="background-color: ${lineObj.color}">${lineObj.name}</span></div>
-                                        <div class="train-row-center ${timeClass}">${timeStr}</div>
-                                        <div class="train-row-right">➔ ${item.dest || '市區'}</div>
-                                    </div>
-                                `;
-                                count++;
+                                allTrains.push({
+                                    lineCode: lCode,
+                                    rawTime: tTime,
+                                    countdown: diffMins,
+                                    destination: translateDest(item.dest)
+                                });
                             }
                         }
                     }
-                    el.innerHTML = html || `<div style="font-size:13px; color: var(--warn);">暫無頻密班次</div>`;
-                    return;
                 }
+            } catch (e) {
+                console.error(e);
             }
-            el.innerHTML = `<div style="font-size:13px; color: var(--danger);">目前沒有即時班次資料</div>`;
-        } catch (e) {
-            el.innerHTML = `<div style="font-size:13px; color: var(--danger);">班次讀取失敗</div>`;
+        }
+
+        allTrains.sort((a, b) => a.rawTime - b.rawTime);
+        let el = document.getElementById(elementId);
+
+        if (allTrains.length > 0) {
+            let html = "";
+            let displayLimit = isTransfer ? 6 : 3;
+            for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) {
+                let t = allTrains[i];
+                let lObj = MTR_LINES[t.lineCode];
+                let timeStr = t.countdown === 0 ? "即將到達" : `${t.countdown} 分鐘`;
+                let timeClass = t.countdown === 0 ? "time-soon" : "time-normal";
+                html += `
+                    <div class="train-row">
+                        <div class="train-row-left"><span class="line-badge" style="background-color: ${lObj ? lObj.color : '#333'}">${lObj ? lObj.name : t.lineCode}</span></div>
+                        <div class="train-row-center ${timeClass}">${timeStr}</div>
+                        <div class="train-row-right">➔ ${t.destination}</div>
+                    </div>
+                `;
+            }
+            el.innerHTML = html;
+        } else {
+            el.innerHTML = `<div style="font-size:13px; color: var(--danger);">目前尚無即時班次或收車中</div>`;
         }
     }
 
-    // 啟動與每 30 秒自動更新
-    initDashboard();
-    setInterval(initDashboard, 30000);
+    function translateDest(destCode) {
+        if (!destCode) return "市區";
+        const specialDestMap = {
+            "KET": "堅尼地城", "KEF": "堅尼地城", "NOP": "北角", "QUO": "鰂魚涌",
+            "CEN": "中環", "ADM": "金鐘", "TIK": "調景嶺", "LHP": "康城",
+            "POA": "寶琳", "TSW": "荃灣", "PRE": "太子", "MKK": "旺角",
+            "WHA": "黃埔", "TUC": "東涌", "SUN": "欣澳", "DIS": "迪士尼",
+            "AIR": "機場", "AWE": "博覽館", "LOW": "羅湖", "LMC": "落馬洲",
+            "HUH": "紅磡", "TAW": "大圍", "SHS": "上水", "TUM": "屯門", "WKS": "烏溪沙"
+        };
+        if (specialDestMap[destCode]) return specialDestMap[destCode];
+        for (let l in MTR_LINES) {
+            if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode];
+        }
+        return destCode;
+    }
+
+    function openModal() {
+        let lineSel = document.getElementById("lineSelect");
+        lineSel.innerHTML = "";
+        for (let lKey in MTR_LINES) {
+            lineSel.innerHTML += `<option value="${lKey}">${MTR_LINES[lKey].name}</option>`;
+        }
+        updateStationOptions();
+        document.getElementById("commonModal").style.display = "flex";
+    }
+
+    function closeModal() {
+        document.getElementById("commonModal").style.display = "none";
+    }
+
+    function updateStationOptions() {
+        let lineKey = document.getElementById("lineSelect").value;
+        let staSel = document.getElementById("stationSelect");
+        staSel.innerHTML = "";
+        let stations = MTR_LINES[lineKey].stations;
+        for (let sCode in stations) {
+            staSel.options.add(new Option(stations[sCode], sCode));
+        }
+    }
+
+    function handleModalConfirm() {
+        let lineKey = document.getElementById("lineSelect").value;
+        let sCode = document.getElementById("stationSelect").value;
+        let sName = MTR_LINES[lineKey].stations[sCode];
+
+        currentSearchedStation = { lineCode: lineKey, stationCode: sCode, stationName: sName };
+        closeModal();
+        renderDashboard();
+    }
+
+    function saveSearchedToFavorites(lineKey, sCode, sName) {
+        let favs = getFavorites();
+        if (!favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
+            if (favs.length >= 3) {
+                alert("收藏上限為 3 個車站！");
+                return;
+            }
+            favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
+            saveFavorites(favs);
+        }
+        currentSearchedStation = null;
+        renderDashboard();
+    }
+
+    function removeFavorite(index) {
+        let favs = getFavorites();
+        favs.splice(index, 1);
+        saveFavorites(favs);
+        renderDashboard();
+    }
+
+    function clearSearchedStation() {
+        currentSearchedStation = null;
+        renderDashboard();
+    }
+
+    renderDashboard();
+    setInterval(renderDashboard, 30000);
 </script>
 
 </body>
