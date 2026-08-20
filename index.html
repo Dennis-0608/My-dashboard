@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTR 即時班次與天氣</title>
+    <title>MTR 即時班次</title>
     
-    <!-- iPhone (iOS) PWA 沉浸式專用設定 -->
+    <!-- iPhone (iOS) PWA 沉浸式專用設定：消除網址列與工具列，呈現如原生 App 般的外觀 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MTR 班次">
 
-    <!-- 強制瀏覽器每次讀取最新版本 -->
+    <!-- 強制瀏覽器（包含 iOS Safari）每次讀取最新版本，避免 GitHub 更新後被快取攔截 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -43,10 +43,8 @@
         header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             margin-bottom: 16px;
-            border-bottom: 1px solid #2c2c2e;
-            padding-bottom: 12px;
         }
         .header-title-wrapper {
             display: flex;
@@ -62,33 +60,12 @@
             margin: 0;
             line-height: 1.2;
         }
-        .header-right {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-        }
         .header-time {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
-            color: var(--text-sub);
-            white-space: nowrap;
-        }
-        .weather-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background-color: #2c2c2e;
-            padding: 4px 8px;
-            border-radius: 8px;
-            font-size: 12px;
             color: #ffffff;
-            font-weight: 500;
-        }
-        .weather-icon {
-            width: 20px;
-            height: 20px;
-            object-fit: contain;
+            text-align: right;
+            white-space: nowrap;
         }
         .btn {
             background-color: #2c2c2e;
@@ -221,17 +198,8 @@
             <span class="logo-symbol">🚇</span>
             <h1>MTR 即時班次</h1>
         </div>
-        <div class="header-right">
-            <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
-            <div id="weather-box" class="weather-badge">
-                <span>天氣載入中...</span>
-            </div>
-        </div>
+        <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
     </header>
-
-    <div style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
-        <button class="btn btn-primary" onclick="openModal()">➕ 查詢其他車站</button>
-    </div>
 
     <div id="favorites-section">
         <div class="section-label">📌 我的收藏車站</div>
@@ -303,31 +271,8 @@
         let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById("global-update-time").innerText = `更新時間: ${nowStr}`;
 
-        loadWeatherInfo();
         renderFavoritesList();
         renderSearchedList();
-    }
-
-    // 穩健的天文台天氣抓取邏輯（加入嚴格防護，絕不影響主程式）
-    async function loadWeatherInfo() {
-        let weatherBox = document.getElementById("weather-box");
-        try {
-            let res = await fetch("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrh&lang=tc");
-            if (!res.ok) throw new Error("API 異常");
-            let json = await res.json();
-            
-            let humidity = json.humidity?.data?.[0]?.value ?? "--";
-            let temp = json.temperature?.data?.[0]?.value ?? "--";
-            let iconNo = json.icon?.[0] ?? 50;
-            let iconUrl = `https://www.hko.gov.hk/images/HKOWxIcon/pic${iconNo}.png`;
-
-            weatherBox.innerHTML = `
-                <img src="${iconUrl}" class="weather-icon" alt="天氣" onerror="this.style.display='none'">
-                <span>${temp}°C 💧${humidity}%</span>
-            `;
-        } catch (e) {
-            weatherBox.innerHTML = `<span>天氣暫無法顯示</span>`;
-        }
     }
 
     async function renderFavoritesList() {
@@ -354,7 +299,9 @@
                 <div class="card-header">
                     <span class="station-title">🚝 ${fav.stationName}站 ⭐</span>
                     <div class="card-actions">
+                        <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="addFavorite('${fav.lineCode}', '${fav.stationCode}', '${fav.stationName}')">收藏</button>
                         <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="removeFavorite(${i})">刪除</button>
+                        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal()">查詢</button>
                     </div>
                 </div>
                 <div id="${cardId}">載入班次中...</div>
@@ -389,7 +336,8 @@
                 <span class="station-title">🚝 ${station.stationName}站</span>
                 <div class="card-actions">
                     <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="saveSearchedToFavorites('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button>
-                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearSearchedStation()">關閉</button>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearSearchedStation()">刪除</button>
+                    <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal()">查詢</button>
                 </div>
             </div>
             <div id="${cardId}">載入班次中...</div>
@@ -505,6 +453,21 @@
 
         currentSearchedStation = { lineCode: lineKey, stationCode: sCode, stationName: sName };
         closeModal();
+        renderDashboard();
+    }
+
+    function addFavorite(lineKey, sCode, sName) {
+        let favs = getFavorites();
+        if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
+            alert("此車站已經在收藏中！");
+            return;
+        }
+        if (favs.length >= 3) {
+            alert("收藏上限為 3 個車站！");
+            return;
+        }
+        favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
+        saveFavorites(favs);
         renderDashboard();
     }
 
