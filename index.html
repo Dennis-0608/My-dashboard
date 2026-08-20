@@ -35,13 +35,24 @@
             align-items: center;
             margin-bottom: 20px;
         }
+        .header-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        /* 縮小後的港鐵經典標誌 */
+        .mtr-logo {
+            width: 32px;
+            height: 28px;
+            object-fit: contain;
+        }
         h1 {
             font-size: 20px;
             margin: 0;
         }
-        /* 右上角最後更新時間：粗體、純白、放大1pt（約15px） */
+        /* 更新時間：改回14px、粗體純白、帶有「更新時間: 」前綴 */
         .header-time {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             color: #ffffff;
             text-align: right;
@@ -112,12 +123,6 @@
         }
         .time-soon { color: var(--warn); font-weight: bold; }
         .time-normal { color: var(--accent); font-weight: bold; }
-        .footer-info {
-            font-size: 11px;
-            color: var(--text-sub);
-            text-align: right;
-            margin-top: 8px;
-        }
         .section-label {
             font-size: 13px;
             color: var(--text-sub);
@@ -176,9 +181,17 @@
 
 <div class="container">
     <header>
-        <h1>🚝 MTR 即時班次</h1>
-        <!-- 右上角改為粗體白色、放大1pt的即時更新時間 -->
-        <div id="global-update-time" class="header-time">更新中...</div>
+        <div class="header-title-wrapper">
+            <!-- 使用港鐵經典標誌取代原本的火車圖案 -->
+            <svg class="mtr-logo" viewBox="0 0 1000 866" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="500" cy="433" rx="500" ry="433" fill="#a41e22"/>
+                <path d="M285 160 h90 v240 c0 45 30 75 75 75 s75-30 75-75 V160 h90 v240 c0 90-60 150-165 150 s-165-60-165-150 V160z" fill="#ffffff"/>
+                <path d="M285 580 h90 v75 c0 45 30 75 75 75 s75-30 75-75 v-75 h90 v75 c0 90-60 150-165 150 s-165-60-165-150 v-75z" fill="#ffffff"/>
+            </svg>
+            <h1>MTR 即時班次</h1>
+        </div>
+        <!-- 右上角即時更新時間 -->
+        <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
     </header>
 
     <!-- 收藏車站列表容器 -->
@@ -237,7 +250,7 @@
         "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"]
     };
 
-    let currentSearchedStation = null; // 暫存臨時查詢車站
+    let currentSearchedStation = null;
 
     function getFavorites() {
         let favs = localStorage.getItem("mtr_web_favorites");
@@ -251,9 +264,8 @@
     }
 
     async function renderDashboard() {
-        // 更新右上角全域最後更新時間
         let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        document.getElementById("global-update-time").innerText = nowStr;
+        document.getElementById("global-update-time").innerText = `更新時間: ${nowStr}`;
 
         renderFavoritesList();
         renderSearchedList();
@@ -319,7 +331,6 @@
             <div class="card-header">
                 <span class="station-title">🚝 ${station.stationName}站</span>
                 <div class="card-actions">
-                    <!-- 當在臨時查詢按下收藏後，會同時將該站加入收藏並自動清空此臨時區塊 -->
                     <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="saveSearchedToFavorites('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button>
                     <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearSearchedStation()">刪除</button>
                     <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal()">查詢</button>
@@ -431,7 +442,6 @@
         }
     }
 
-    // Modal 確認：執行查詢並顯示在下方臨時區塊
     function handleModalConfirm() {
         let lineKey = document.getElementById("lineSelect").value;
         let sCode = document.getElementById("stationSelect").value;
@@ -442,7 +452,6 @@
         renderDashboard();
     }
 
-    // 一般收藏加入
     function addFavorite(lineKey, sCode, sName) {
         let favs = getFavorites();
         if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
@@ -458,7 +467,6 @@
         renderDashboard();
     }
 
-    // 臨時查詢區塊按「收藏」：加入收藏並自動清空臨時查詢內容
     function saveSearchedToFavorites(lineKey, sCode, sName) {
         let favs = getFavorites();
         if (!favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
@@ -469,7 +477,6 @@
             favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
             saveFavorites(favs);
         }
-        // 清空臨時查詢內容
         currentSearchedStation = null;
         renderDashboard();
     }
