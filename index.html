@@ -51,7 +51,6 @@
         .btn:hover {
             background-color: #3a3a3c;
         }
-        /* 卡片設計：左側帶有該路線代表色的直條裝飾 */
         .card {
             background-color: var(--card-bg);
             border-radius: 14px;
@@ -74,12 +73,22 @@
             font-size: 18px;
             font-weight: bold;
         }
+        /* 班次行排版：使用三欄對齊（左路線、中時間置中、右終點站） */
         .train-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 100px 1fr 100px;
             align-items: center;
             margin-bottom: 8px;
             font-size: 14px;
+        }
+        .train-row-left {
+            text-align: left;
+        }
+        .train-row-center {
+            text-align: center; /* 時間強制置中 */
+        }
+        .train-row-right {
+            text-align: right; /* 終點站靠右對齊，層次分明 */
         }
         .line-badge {
             font-weight: bold;
@@ -87,6 +96,7 @@
             border-radius: 4px;
             font-size: 12px;
             color: #ffffff;
+            display: inline-block;
         }
         .time-soon {
             color: var(--warn);
@@ -187,7 +197,6 @@
 </div>
 
 <script>
-    // 10大路線與標準官方代表色及完整車站對應
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
@@ -255,7 +264,8 @@
     }
 
     async function loadStationSchedule(lineCode, stationCode, elementId, index) {
-        let linesToFetch = TRANSFER_STATIONS[stationCode] ? TRANSFER_STATIONS[stationCode] : [lineCode];
+        let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined;
+        let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode];
         let allTrains = [];
         let now = new Date();
 
@@ -295,17 +305,18 @@
 
         if (allTrains.length > 0) {
             let html = "";
-            // 將顯示數量由 3 提升至 6 個，讓轉車站能看見更豐富的班次
-            for (let i = 0; i < Math.min(allTrains.length, 6); i++) {
+            // 轉車站顯示 6 個班次，非轉車站維持顯示最近的 3 個班次
+            let displayLimit = isTransfer ? 6 : 3;
+            for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) {
                 let t = allTrains[i];
                 let lObj = MTR_LINES[t.lineCode];
                 let timeStr = t.countdown === 0 ? "即將到達" : `${t.countdown} 分鐘`;
                 let timeClass = t.countdown === 0 ? "time-soon" : "time-normal";
                 html += `
                     <div class="train-row">
-                        <span><span class="line-badge" style="background-color: ${lObj ? lObj.color : '#333'}">${lObj ? lObj.name : t.lineCode}</span></span>
-                        <span class="${timeClass}">${timeStr}</span>
-                        <span>➔ ${t.destination}</span>
+                        <div class="train-row-left"><span class="line-badge" style="background-color: ${lObj ? lObj.color : '#333'}">${lObj ? lObj.name : t.lineCode}</span></div>
+                        <div class="train-row-center ${timeClass}">${timeStr}</div>
+                        <div class="train-row-right">➔ ${t.destination}</div>
                     </div>
                 `;
             }
@@ -315,41 +326,19 @@
         }
     }
 
-    // 完整的中文終點站對應函式（徹底解決 KET 等英文代碼顯示問題）
     function translateDest(destCode) {
         if (!destCode) return "市區";
-        // 特殊常見代碼對應表
         const specialDestMap = {
-            "KET": "堅尼地城",
-            "KEF": "堅尼地城",
-            "NOP": "北角",
-            "QUO": "鰂魚涌",
-            "CEN": "中環",
-            "ADM": "金鐘",
-            "TIK": "調景嶺",
-            "LHP": "康城",
-            "POA": "寶琳",
-            "TSW": "荃灣",
-            "PRE": "太子",
-            "MKK": "旺角",
-            "WHA": "黃埔",
-            "TUC": "東涌",
-            "SUN": "欣澳",
-            "DIS": "迪士尼",
-            "AIR": "機場",
-            "AWE": "博覽館",
-            "LOW": "羅湖",
-            "LMC": "落馬洲",
-            "HUH": "紅磡",
-            "TAW": "大圍",
-            "SHS": "上水",
-            "TUM": "屯門",
-            "WKS": "烏溪沙"
+            "KET": "堅尼地城", "KEF": "堅尼地城", "NOP": "北角", "QUO": "鰂魚涌",
+            "CEN": "中環", "ADM": "金鐘", "TIK": "調景嶺", "LHP": "康城",
+            "POA": "寶琳", "TSW": "荃灣", "PRE": "太子", "MKK": "旺角",
+            "WHA": "黃埔", "TUC": "東涌", "SUN": "欣澳", "DIS": "迪士尼",
+            "AIR": "機場", "AWE": "博覽館", "LOW": "羅湖", "LMC": "落馬洲",
+            "HUH": "紅磡", "TAW": "大圍", "SHS": "上水", "TUM": "屯門", "WKS": "烏溪沙"
         };
         if (specialDestMap[destCode]) {
             return specialDestMap[destCode];
         }
-        // 全面掃描所有路線字典
         for (let l in MTR_LINES) {
             if (MTR_LINES[l].stations[destCode]) {
                 return MTR_LINES[l].stations[destCode];
