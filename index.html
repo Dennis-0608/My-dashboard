@@ -60,7 +60,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             position: relative;
             overflow: hidden;
-            border-left: 6px solid #555; /* 動態由 JS 賦予該線顏色 */
+            border-left: 6px solid #555;
         }
         .card-header {
             display: flex;
@@ -187,7 +187,7 @@
 </div>
 
 <script>
-    // 10大路線與標準官方代表色
+    // 10大路線與標準官方代表色及完整車站對應
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
@@ -238,7 +238,6 @@
             
             let card = document.createElement("div");
             card.className = "card";
-            // 根據該收藏車站的主路線設定左側邊框底色
             card.style.borderLeftColor = lineHexColor;
             
             card.innerHTML = `
@@ -296,7 +295,8 @@
 
         if (allTrains.length > 0) {
             let html = "";
-            for (let i = 0; i < Math.min(allTrains.length, 3); i++) {
+            // 將顯示數量由 3 提升至 6 個，讓轉車站能看見更豐富的班次
+            for (let i = 0; i < Math.min(allTrains.length, 6); i++) {
                 let t = allTrains[i];
                 let lObj = MTR_LINES[t.lineCode];
                 let timeStr = t.countdown === 0 ? "即將到達" : `${t.countdown} 分鐘`;
@@ -315,10 +315,45 @@
         }
     }
 
+    // 完整的中文終點站對應函式（徹底解決 KET 等英文代碼顯示問題）
     function translateDest(destCode) {
         if (!destCode) return "市區";
+        // 特殊常見代碼對應表
+        const specialDestMap = {
+            "KET": "堅尼地城",
+            "KEF": "堅尼地城",
+            "NOP": "北角",
+            "QUO": "鰂魚涌",
+            "CEN": "中環",
+            "ADM": "金鐘",
+            "TIK": "調景嶺",
+            "LHP": "康城",
+            "POA": "寶琳",
+            "TSW": "荃灣",
+            "PRE": "太子",
+            "MKK": "旺角",
+            "WHA": "黃埔",
+            "TUC": "東涌",
+            "SUN": "欣澳",
+            "DIS": "迪士尼",
+            "AIR": "機場",
+            "AWE": "博覽館",
+            "LOW": "羅湖",
+            "LMC": "落馬洲",
+            "HUH": "紅磡",
+            "TAW": "大圍",
+            "SHS": "上水",
+            "TUM": "屯門",
+            "WKS": "烏溪沙"
+        };
+        if (specialDestMap[destCode]) {
+            return specialDestMap[destCode];
+        }
+        // 全面掃描所有路線字典
         for (let l in MTR_LINES) {
-            if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode];
+            if (MTR_LINES[l].stations[destCode]) {
+                return MTR_LINES[l].stations[destCode];
+            }
         }
         return destCode;
     }
@@ -355,7 +390,7 @@
         staSel.innerHTML = "";
         let stations = MTR_LINES[lineKey].stations;
         for (let sCode in stations) {
-            staSel.innerHTML += `<option value="${sCode}">${stations[sCode]}</option>`;
+            staSel.options.add(new Option(stations[sCode], sCode));
         }
     }
 
