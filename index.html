@@ -38,13 +38,12 @@
         .header-title-wrapper {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
-        /* 完美對齊的完整官方地鐵 Logo（含中英文地鐵字樣） */
-        .mtr-logo {
-            height: 32px;
+        /* 完美向量 SVG Logo 樣式，支援高解析度自動縮放 */
+        .mtr-logo-svg {
+            height: 34px;
             width: auto;
-            object-fit: contain;
             display: block;
         }
         h1 {
@@ -52,7 +51,7 @@
             margin: 0;
             line-height: 1.2;
         }
-        /* 更新時間：14px、粗體純白、帶有「更新時間: 」前綴 */
+        /* 更新時間：13px、粗體純白、帶有「更新時間: 」前綴 */
         .header-time {
             font-size: 13px;
             font-weight: bold;
@@ -70,9 +69,7 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .btn:hover {
-            background-color: #3a3a3c;
-        }
+        .btn:hover { background-color: #3a3a3c; }
         .btn-primary { background-color: #1c58d9; }
         .btn-primary:hover { background-color: #2368ef; }
         .btn-success { background-color: #248a3d; }
@@ -133,7 +130,7 @@
             font-weight: bold;
         }
 
-        /* 針對手機橫向（Landscape）模式的自動適應調整 */
+        /* 手機橫向（Landscape）模式自動調整：自動擴寬畫面與優化留白 */
         @media screen and (min-width: 600px) and (orientation: landscape) {
             .container {
                 max-width: 640px;
@@ -196,8 +193,16 @@
 <div class="container">
     <header>
         <div class="header-title-wrapper">
-            <!-- 完整官方地鐵 Logo 嵌入（含中文「地鐵」與英文「MTR」），完美維持比例且支援 RWD 自動縮放 -->
-            <img class="mtr-logo" src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTU0NCAzNTMiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwhLS- 官方完整Logo數據 - ->CjxnPiAgICA8ZWxsaXBzZSBjeD0iMTc2IiBjeT0iMTc2IiByeD0iMTc2IiByeT0iMTc2IiBmaWxsPSIjYTQxZTIyIi8+ICAgIDxwYXRoIGQ9Ik05NiA3NmgzMnY5NmMwIDE4IDEyIDMwIDMwIDMwczMwLTEyIDMwLTMwVjc2aDMydjk2YzAgMzYtMjQgNjAtNjYgNjBzLTY2LTI0LTY2LTYwVjc2eiIgZmlsbD0iI2ZmZmZmZiIvPiAgICA8cGF0aCBkPSJNOSAyMzJoMzJ2MzBjMCAxOCAxMiAzMCAzMCAzM3MzMC0xNSAzMC0zM3YtMzBoMzJ2MzBjMCAzNi0yNCA2MC02NiA2MHMtNjYtMjQtNjYtNjB2LTMweiIgZmlsbD0iI2ZmZmZmZiIvPjwvZz4KPHBhdGggZD0iTTM3NiA3NmgzMnYzMyBoMzZ2MzJoLTM2djY1YzAgMTIgNiAxOCAxOCAxOGgxOHYzMmgtMjhjLTI3IDAtNDQtMTUtNDQtNDR2LTcxSjM3NnYtMzJoMjZWNjlINDgzVjcySDM3NnoiIGZmlsbD0iIzExMzcyOSIvPgo8IS0tICh 省略部分複雜文字路徑，已完美整合你上傳的圖片特徵) - ->" alt="MTR Logo">
+            <!-- 內嵌式原生 SVG MTR 標誌：絕對不會破圖，且能完美依比例縮放 -->
+            <svg class="mtr-logo-svg" viewBox="0 0 280 85" xmlns="http://www.w3.org/2000/svg">
+                <!-- 左側紅色軌道圓形圖標 -->
+                <ellipse cx="42.5" cy="42.5" rx="42.5" ry="42.5" fill="#a41e22"/>
+                <path d="M26 20h7v23c0 4 3 7 7 7s7-3 7-7V20h7v23c0 8-5 14-14 14s-14-6-14-14V20z" fill="#ffffff"/>
+                <path d="M26 55h7v7c0 4 3 7 7 8s7-4 7-8v-7h7v7c0 8-5 14-14 14s-14-6-14-14v-7z" fill="#ffffff"/>
+                <!-- 右側藍色字樣（地鐵 MTR） -->
+                <text x="96" y="34" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="900" fill="#0d233a">地鐵</text>
+                <text x="96" y="68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="bold" fill="#0d233a" letter-spacing="1">MTR</text>
+            </svg>
             <h1>MTR 即時班次</h1>
         </div>
         <!-- 右上角即時更新時間 -->
@@ -212,7 +217,7 @@
         </div>
     </div>
 
-    <!-- 臨時查詢車站列表容器（顯示在最下方） -->
+    <!-- 臨時查詢車站列表容器 -->
     <div id="searched-section" style="display: none;">
         <div class="section-label">🔍 臨時查詢車站</div>
         <div id="searched-list"></div>
