@@ -13,6 +13,7 @@
             --accent: #34c759;
             --warn: #ff9f0a;
             --danger: #ff3b30;
+            --primary: #0a84ff;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -42,15 +43,22 @@
             background-color: #2c2c2e;
             color: var(--text-main);
             border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
             cursor: pointer;
             transition: background 0.2s;
         }
         .btn:hover {
             background-color: #3a3a3c;
         }
+        .btn-primary { background-color: #1c58d9; }
+        .btn-primary:hover { background-color: #2368ef; }
+        .btn-success { background-color: #248a3d; }
+        .btn-success:hover { background-color: #2fa14c; }
+        .btn-danger { background-color: #a91d1a; }
+        .btn-danger:hover { background-color: #c92a27; }
+
         .card {
             background-color: var(--card-bg);
             border-radius: 14px;
@@ -70,10 +78,13 @@
             padding-bottom: 8px;
         }
         .station-title {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
         }
-        /* 班次行排版：使用三欄對齊（左路線、中時間置中、右終點站） */
+        .card-actions {
+            display: flex;
+            gap: 6px;
+        }
         .train-row {
             display: grid;
             grid-template-columns: 100px 1fr 100px;
@@ -81,15 +92,9 @@
             margin-bottom: 8px;
             font-size: 14px;
         }
-        .train-row-left {
-            text-align: left;
-        }
-        .train-row-center {
-            text-align: center; /* 時間強制置中 */
-        }
-        .train-row-right {
-            text-align: right; /* 終點站靠右對齊，層次分明 */
-        }
+        .train-row-left { text-align: left; }
+        .train-row-center { text-align: center; }
+        .train-row-right { text-align: right; }
         .line-badge {
             font-weight: bold;
             padding: 2px 6px;
@@ -98,19 +103,19 @@
             color: #ffffff;
             display: inline-block;
         }
-        .time-soon {
-            color: var(--warn);
-            font-weight: bold;
-        }
-        .time-normal {
-            color: var(--accent);
-            font-weight: bold;
-        }
+        .time-soon { color: var(--warn); font-weight: bold; }
+        .time-normal { color: var(--accent); font-weight: bold; }
         .footer-info {
             font-size: 11px;
             color: var(--text-sub);
             text-align: right;
             margin-top: 8px;
+        }
+        .section-label {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin: 15px 0 8px 4px;
+            font-weight: bold;
         }
         /* Modal 彈窗樣式 */
         .modal {
@@ -122,6 +127,7 @@
             align-items: center;
             padding: 20px;
             box-sizing: border-box;
+            z-index: 1000;
         }
         .modal-content {
             background: var(--card-bg);
@@ -164,34 +170,39 @@
 <div class="container">
     <header>
         <h1>🚝 MTR 即時班次</h1>
-        <button class="btn" onclick="openAddModal()">＋ 新增收藏</button>
+        <button class="btn btn-primary" onclick="openModal('add')">＋ 新增收藏</button>
     </header>
 
     <!-- 收藏車站列表容器 -->
-    <div id="favorites-list">
-        <p style="text-align:center; color: var(--text-sub);">載入中...</p>
+    <div id="favorites-section">
+        <div class="section-label">📌 我的收藏車站</div>
+        <div id="favorites-list">
+            <p style="text-align:center; color: var(--text-sub);">載入中...</p>
+        </div>
+    </div>
+
+    <!-- 臨時查詢車站列表容器（顯示在最下方） -->
+    <div id="searched-section" style="display: none;">
+        <div class="section-label">🔍 臨時查詢車站</div>
+        <div id="searched-list"></div>
     </div>
 </div>
 
-<!-- 新增收藏 Modal -->
-<div id="addModal" class="modal">
+<!-- 通用選擇 Modal（供 新增收藏 / 獨立查詢 共用） -->
+<div id="commonModal" class="modal">
     <div class="modal-content">
-        <div class="modal-title">新增車站收藏</div>
+        <div class="modal-title" id="modalTitle">選擇車站</div>
         <div class="select-group">
             <label>選擇路線：</label>
-            <select id="lineSelect" onchange="updateStationOptions()">
-                <!-- 動態填入 -->
-            </select>
+            <select id="lineSelect" onchange="updateStationOptions()"></select>
         </div>
         <div class="select-group">
             <label>選擇車站：</label>
-            <select id="stationSelect">
-                <!-- 動態填入 -->
-            </select>
+            <select id="stationSelect"></select>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="btn" style="flex:1; background-color: #34c759;" onclick="saveNewFavorite()">確認收藏</button>
-            <button class="btn" style="flex:1; background-color: #3a3a3c;" onclick="closeAddModal()">取消</button>
+            <button class="btn btn-success" style="flex:1;" onclick="handleModalConfirm()">確認</button>
+            <button class="btn" style="flex:1; background-color: #3a3a3c;" onclick="closeModal()">取消</button>
         </div>
     </div>
 </div>
@@ -218,6 +229,10 @@
         "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"]
     };
 
+    // 狀態管理
+    let modalMode = "add"; // 'add' 或 'query'
+    let currentSearchedStation = null; // 儲存畫面下方臨時查詢的車站資料
+
     function getFavorites() {
         let favs = localStorage.getItem("mtr_web_favorites");
         return favs ? JSON.parse(favs) : [
@@ -230,18 +245,24 @@
     }
 
     async function renderDashboard() {
+        renderFavoritesList();
+        renderSearchedList();
+    }
+
+    // 渲染「我的收藏」列表
+    async function renderFavoritesList() {
         let favs = getFavorites();
         let container = document.getElementById("favorites-list");
         container.innerHTML = "";
 
         if (favs.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color: var(--text-sub);">尚未收藏任何車站，請點擊右上角新增。</p>`;
+            container.innerHTML = `<p style="text-align:center; color: var(--text-sub);">尚未收藏任何車站。</p>`;
             return;
         }
 
         for (let i = 0; i < favs.length; i++) {
             let fav = favs[i];
-            let cardId = `card-${i}`;
+            let cardId = `fav-card-${i}`;
             let lineObj = MTR_LINES[fav.lineCode];
             let lineHexColor = lineObj ? lineObj.color : "#555";
             
@@ -252,18 +273,59 @@
             card.innerHTML = `
                 <div class="card-header">
                     <span class="station-title">🚝 ${fav.stationName}站 ⭐</span>
-                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #3a3a3c;" onclick="removeFavorite(${i})">刪除</button>
+                    <div class="card-actions">
+                        <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="addFavoriteFromCard('${fav.lineCode}', '${fav.stationCode}', '${fav.stationName}')">收藏</button>
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="removeFavorite(${i})">刪除</button>
+                        <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal('query')">查詢</button>
+                    </div>
                 </div>
                 <div id="${cardId}">載入班次中...</div>
-                <div class="footer-info" id="time-${i}">更新中...</div>
+                <div class="footer-info" id="time-fav-${i}">更新中...</div>
             `;
             container.appendChild(card);
-
-            loadStationSchedule(fav.lineCode, fav.stationCode, cardId, i);
+            loadStationSchedule(fav.lineCode, fav.stationCode, cardId, `time-fav-${i}`);
         }
     }
 
-    async function loadStationSchedule(lineCode, stationCode, elementId, index) {
+    // 渲染「臨時查詢」列表（顯示於畫面最下方）
+    async function renderSearchedList() {
+        let section = document.getElementById("searched-section");
+        let container = document.getElementById("searched-list");
+        container.innerHTML = "";
+
+        if (!currentSearchedStation) {
+            section.style.display = "none";
+            return;
+        }
+
+        section.style.display = "block";
+        let station = currentSearchedStation;
+        let cardId = `search-card-0`;
+        let lineObj = MTR_LINES[station.lineCode];
+        let lineHexColor = lineObj ? lineObj.color : "#555";
+
+        let card = document.createElement("div");
+        card.className = "card";
+        card.style.borderLeftColor = lineHexColor;
+        
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="station-title">🚝 ${station.stationName}站</span>
+                <div class="card-actions">
+                    <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="addFavoriteFromCard('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="clearSearchedStation()">刪除</button>
+                    <button class="btn btn-primary" style="padding: 4px 8px; font-size: 11px;" onclick="openModal('query')">查詢</button>
+                </div>
+            </div>
+            <div id="${cardId}">載入班次中...</div>
+            <div class="footer-info" id="time-search-0">更新中...</div>
+        `;
+        container.appendChild(card);
+        loadStationSchedule(station.lineCode, station.stationCode, cardId, `time-search-0`);
+    }
+
+    // 載入班次共用函式（非轉車站顯示 3 個，轉車站顯示 6 個）
+    async function loadStationSchedule(lineCode, stationCode, elementId, timeElementId) {
         let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined;
         let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode];
         let allTrains = [];
@@ -299,13 +361,12 @@
 
         allTrains.sort((a, b) => a.rawTime - b.rawTime);
         let el = document.getElementById(elementId);
-        let timeEl = document.getElementById(`time-${index}`);
+        let timeEl = document.getElementById(timeElementId);
         let updateTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        timeEl.innerText = `最後更新: ${updateTimeStr}`;
+        if (timeEl) timeEl.innerText = `最後更新: ${updateTimeStr}`;
 
         if (allTrains.length > 0) {
             let html = "";
-            // 轉車站顯示 6 個班次，非轉車站維持顯示最近的 3 個班次
             let displayLimit = isTransfer ? 6 : 3;
             for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) {
                 let t = allTrains[i];
@@ -336,41 +397,29 @@
             "AIR": "機場", "AWE": "博覽館", "LOW": "羅湖", "LMC": "落馬洲",
             "HUH": "紅磡", "TAW": "大圍", "SHS": "上水", "TUM": "屯門", "WKS": "烏溪沙"
         };
-        if (specialDestMap[destCode]) {
-            return specialDestMap[destCode];
-        }
+        if (specialDestMap[destCode]) return specialDestMap[destCode];
         for (let l in MTR_LINES) {
-            if (MTR_LINES[l].stations[destCode]) {
-                return MTR_LINES[l].stations[destCode];
-            }
+            if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode];
         }
         return destCode;
     }
 
-    function removeFavorite(index) {
-        let favs = getFavorites();
-        favs.splice(index, 1);
-        saveFavorites(favs);
-        renderDashboard();
-    }
-
-    function openAddModal() {
-        let favs = getFavorites();
-        if (favs.length >= 3) {
-            alert("最多只能收藏 3 個車站！");
-            return;
-        }
+    // Modal 控制
+    function openModal(mode) {
+        modalMode = mode;
+        document.getElementById("modalTitle").innerText = mode === 'add' ? "新增車站收藏" : "查詢車站班次";
+        
         let lineSel = document.getElementById("lineSelect");
         lineSel.innerHTML = "";
         for (let lKey in MTR_LINES) {
             lineSel.innerHTML += `<option value="${lKey}">${MTR_LINES[lKey].name}</option>`;
         }
         updateStationOptions();
-        document.getElementById("addModal").style.display = "flex";
+        document.getElementById("commonModal").style.display = "flex";
     }
 
-    function closeAddModal() {
-        document.getElementById("addModal").style.display = "none";
+    function closeModal() {
+        document.getElementById("commonModal").style.display = "none";
     }
 
     function updateStationOptions() {
@@ -383,20 +432,58 @@
         }
     }
 
-    function saveNewFavorite() {
+    // Modal 確認按鈕邏輯分流
+    function handleModalConfirm() {
         let lineKey = document.getElementById("lineSelect").value;
         let sCode = document.getElementById("stationSelect").value;
         let sName = MTR_LINES[lineKey].stations[sCode];
 
+        if (modalMode === 'add') {
+            let favs = getFavorites();
+            if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
+                alert("此車站已經在收藏中！");
+                return;
+            }
+            if (favs.length >= 3) {
+                alert("收藏上限為 3 個車站！");
+                return;
+            }
+            favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
+            saveFavorites(favs);
+        } else {
+            // 查詢模式：將結果顯示於畫面最下方
+            currentSearchedStation = { lineCode: lineKey, stationCode: sCode, stationName: sName };
+        }
+
+        closeModal();
+        renderDashboard();
+    }
+
+    // 從卡片直接加入收藏
+    function addFavoriteFromCard(lineKey, sCode, sName) {
         let favs = getFavorites();
         if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) {
             alert("此車站已經在收藏中！");
             return;
         }
-
+        if (favs.length >= 3) {
+            alert("收藏上限為 3 個車站！");
+            return;
+        }
         favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName });
         saveFavorites(favs);
-        closeAddModal();
+        renderDashboard();
+    }
+
+    function removeFavorite(index) {
+        let favs = getFavorites();
+        favs.splice(index, 1);
+        saveFavorites(favs);
+        renderDashboard();
+    }
+
+    function clearSearchedStation() {
+        currentSearchedStation = null;
         renderDashboard();
     }
 
