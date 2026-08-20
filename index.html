@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTR 即時班次 Dashboard</title>
+    <title>MTR 即時班次</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -51,6 +51,7 @@
         .btn:hover {
             background-color: #3a3a3c;
         }
+        /* 卡片設計：左側帶有該路線代表色的直條裝飾 */
         .card {
             background-color: var(--card-bg);
             border-radius: 14px;
@@ -58,6 +59,8 @@
             margin-bottom: 16px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             position: relative;
+            overflow: hidden;
+            border-left: 6px solid #555; /* 動態由 JS 賦予該線顏色 */
         }
         .card-header {
             display: flex;
@@ -83,6 +86,7 @@
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 12px;
+            color: #ffffff;
         }
         .time-soon {
             color: var(--warn);
@@ -149,7 +153,7 @@
 
 <div class="container">
     <header>
-        <h1>🚝 MTR 即時班次看板</h1>
+        <h1>🚝 MTR 即時班次</h1>
         <button class="btn" onclick="openAddModal()">＋ 新增收藏</button>
     </header>
 
@@ -183,7 +187,7 @@
 </div>
 
 <script>
-    // 10大路線與車站資料
+    // 10大路線與標準官方代表色
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
@@ -205,7 +209,6 @@
         "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"]
     };
 
-    // 本地儲存讀寫
     function getFavorites() {
         let favs = localStorage.getItem("mtr_web_favorites");
         return favs ? JSON.parse(favs) : [
@@ -217,7 +220,6 @@
         localStorage.setItem("mtr_web_favorites", JSON.stringify(favs));
     }
 
-    // 初始化渲染
     async function renderDashboard() {
         let favs = getFavorites();
         let container = document.getElementById("favorites-list");
@@ -231,12 +233,17 @@
         for (let i = 0; i < favs.length; i++) {
             let fav = favs[i];
             let cardId = `card-${i}`;
+            let lineObj = MTR_LINES[fav.lineCode];
+            let lineHexColor = lineObj ? lineObj.color : "#555";
             
             let card = document.createElement("div");
             card.className = "card";
+            // 根據該收藏車站的主路線設定左側邊框底色
+            card.style.borderLeftColor = lineHexColor;
+            
             card.innerHTML = `
                 <div class="card-header">
-                    <span class="station-title">🚝 ${fav.stationName}站 (收藏 ${i+1})</span>
+                    <span class="station-title">🚝 ${fav.stationName}站 ⭐</span>
                     <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #3a3a3c;" onclick="removeFavorite(${i})">刪除</button>
                 </div>
                 <div id="${cardId}">載入班次中...</div>
@@ -244,7 +251,6 @@
             `;
             container.appendChild(card);
 
-            // 非同步抓取資料
             loadStationSchedule(fav.lineCode, fav.stationCode, cardId, i);
         }
     }
@@ -324,7 +330,6 @@
         renderDashboard();
     }
 
-    // Modal 控制與動態選單
     function openAddModal() {
         let favs = getFavorites();
         if (favs.length >= 3) {
@@ -371,7 +376,6 @@
         renderDashboard();
     }
 
-    // 啟動與自動每 30 秒重新整理
     renderDashboard();
     setInterval(renderDashboard, 30000);
 </script>
