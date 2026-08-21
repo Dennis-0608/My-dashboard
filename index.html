@@ -99,20 +99,22 @@
             border-bottom: 1px solid #2c2c2e;
             padding-bottom: 8px;
         }
+        /* 紅框內車站標題放大 2px (由 16px 改為 18px) */
         .station-title {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
         }
         .card-actions {
             display: flex;
             gap: 5px;
         }
+        /* 紅框內列車班次列文字放大 2px (由 14px 改為 16px) */
         .train-row {
             display: grid;
-            grid-template-columns: 100px 1fr 100px;
+            grid-template-columns: 110px 1fr 110px;
             align-items: center;
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 10px;
+            font-size: 16px;
         }
         .train-row-left {
             text-align: left;
@@ -123,11 +125,12 @@
         .train-row-right {
             text-align: right;
         }
+        /* 紅框內路線標籤放大 2px (由 12px 改為 14px) */
         .line-badge {
             font-weight: bold;
-            padding: 2px 6px;
+            padding: 3px 8px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 14px;
             color: #ffffff;
             display: inline-block;
         }
@@ -346,7 +349,7 @@
             let card = document.createElement("div"); 
             card.className = "card"; 
             card.style.borderLeftColor = lineHexColor; 
-            card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + fav.stationName + "站 ⭐</span><div class='card-actions'><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='removeFavorite(" + i + ")'>刪除</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
+            card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + fav.stationName + "站 ⭐</span><div class='card-actions'><button class='btn btn-danger' style='padding: 5px 10px; font-size: 13px;' onclick='removeFavorite(" + i + ")'>刪除</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
             
             container.appendChild(card); 
             loadStationSchedule(fav.lineCode, fav.stationCode, cardId); 
@@ -372,7 +375,7 @@
         let card = document.createElement("div"); 
         card.className = "card"; 
         card.style.borderLeftColor = lineHexColor; 
-        card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + station.stationName + "站</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick=\"saveSearchedToFavorites('" + station.lineCode + "', '" + station.stationCode + "', '" + station.stationName + "')\">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='clearSearchedStation()'>刪除</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
+        card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + station.stationName + "站</span><div class='card-actions'><button class='btn btn-success' style='padding: 5px 10px; font-size: 13px;' onclick=\"saveSearchedToFavorites('" + station.lineCode + "', '" + station.stationCode + "', '" + station.stationName + "')\">收藏</button><button class='btn btn-danger' style='padding: 5px 10px; font-size: 13px;' onclick='clearSearchedStation()'>刪除</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
         
         container.appendChild(card); 
         loadStationSchedule(station.lineCode, station.stationCode, cardId); 
@@ -401,7 +404,6 @@
                                     let tTime = new Date(item.time.replace(/-/g, "/")); 
                                     let diffSeconds = Math.floor((tTime - now) / 1000); 
                                     
-                                    // 容許剛離開車站 10 秒內（-10秒以上）的班次顯示「正在離開」
                                     if (diffSeconds >= -10) { 
                                         let diffMins = Math.floor(diffSeconds / 60); 
                                         allTrains.push({ 
@@ -454,7 +456,7 @@
             } 
             el.innerHTML = html; 
         } else { 
-            el.innerHTML = "<div style='font-size:13px; color: var(--danger);'>目前尚無即時班次或收車中</div>"; 
+            el.innerHTML = "<div style='font-size:15px; color: var(--danger);'>目前尚無即時班次或收車中</div>"; 
         } 
     }
 
