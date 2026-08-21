@@ -41,7 +41,6 @@
             gap: 8px;
         }
         
-        /* 解決問題 1：自訂下拉選單，強制覆蓋手機預設樣式並加入純白箭咀 */
         .custom-select {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -49,13 +48,11 @@
             background-color: #2c2c2e;
             color: var(--text-main);
             border: none;
-            /* 右邊預留 30px 空間給箭咀 */
             padding: 8px 30px 8px 10px;
             border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            /* 嵌入純白色 SVG 箭咀 */
             background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
             background-repeat: no-repeat;
             background-position: right 10px center;
@@ -159,7 +156,6 @@
         .select-group { margin-bottom: 15px; }
         label { font-size: 13px; color: var(--text-sub); display: block; margin-bottom: 6px; }
         
-        /* 將彈窗內的選單也套用同樣的樣式，但設定為 100% 寬度 */
         .modal-select {
             width: 100%;
             font-size: 14px;
@@ -196,11 +192,11 @@
 
     <!-- 巴士介面區塊 -->
     <div id="bus-container" style="display: none;">
-        <div class="section-label">📍 附近巴士站 (依高精度 GPS 定位)</div>
+        <div class="section-label">📍 附近巴士站 (智能定位)</div>
         <div style="margin-bottom: 10px;">
             <button class="btn btn-primary" onclick="fetchNearbyBuses()" style="width:100%; padding: 10px;">🔄 重新獲取最新位置與巴士</button>
         </div>
-        <div id="bus-stops-list"><p style="text-align:center; color: var(--text-sub);">正在啟動 GPS 尋找附近巴士站...</p></div>
+        <div id="bus-stops-list"><p style="text-align:center; color: var(--text-sub);">正在鎖定定位中，請稍候...</p></div>
     </div>
 </div>
 
@@ -255,6 +251,30 @@
     }
     function saveFavorites(favs) { localStorage.setItem("mtr_web_favorites", JSON.stringify(favs)); }
 
+    /* ================= 取得定位 (雙重保險機制) ================= */
+    function getSmartPosition() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error("瀏覽器不支援定位"));
+                return;
+            }
+            // 嘗試 1：高精度定位 (8秒超時)
+            navigator.geolocation.getCurrentPosition(
+                resolve,
+                (err) => {
+                    console.warn("高精度定位失敗，嘗試低精度定位...", err);
+                    // 嘗試 2：降級為低精度定位 (使用基站/Wi-Fi，快很多)
+                    navigator.geolocation.getCurrentPosition(
+                        resolve,
+                        reject,
+                        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+                    );
+                },
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        });
+    }
+
     /* ================= 切換模式 (MTR / Bus) ================= */
     function switchMode() {
         currentMode = document.getElementById("modeSelect").value;
@@ -299,20 +319,12 @@
         let weatherEl = document.getElementById("global-weather");
         let lat = 22.3193, lon = 114.1694;
 
-        if (navigator.geolocation) {
-            try {
-                let position = await new Promise((resolve, reject) => {
-                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 10000); // 延長至 10 秒
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => { clearTimeout(timer); resolve(pos); },
-                        (err) => { clearTimeout(timer); reject(err); },
-                        // 解決問題 2：要求高精度、不使用快取
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                    );
-                });
-                lat = position.coords.latitude;
-                lon = position.coords.longitude;
-            } catch (err) { console.log("天氣 GPS 逾時或被拒，使用預設座標"); }
+        try {
+            let position = await getSmartPosition();
+            lat = position.coords.latitude;
+            lon = position.coords.longitude;
+        } catch (err) { 
+            console.log("天氣 GPS 逾時或被拒，使用預設座標"); 
         }
 
         try {
@@ -449,40 +461,28 @@
         return destCode; 
     }
 
-    /* ================= 巴士到站預報與高精度 GPS 邏輯 ================= */
+    /* ================= 巴士到站預報 (智能定位與分組過濾) ================= */
     async function fetchNearbyBuses() {
         let container = document.getElementById("bus-stops-list");
-        container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>正在鎖定高精度 GPS 定位中，請稍候...</p>";
+        container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>正在鎖定智能 GPS 定位中，請稍候...</p>";
 
         let lat = 22.3193, lon = 114.1694; // 預設旺角
         let isRealLocation = false;
 
-        if (navigator.geolocation) {
-            try {
-                let position = await new Promise((resolve, reject) => {
-                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 10000); // 解決問題 2：給 10 秒時間鎖定
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => { clearTimeout(timer); resolve(pos); },
-                        (err) => { clearTimeout(timer); reject(err); },
-                        // 解決問題 2：要求最高精準度，不使用歷史快取
-                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                    );
-                });
-                lat = position.coords.latitude;
-                lon = position.coords.longitude;
-                isRealLocation = true;
-            } catch (err) {
-                console.log("GPS 定位失敗或逾時，使用預設座標");
-            }
+        try {
+            let position = await getSmartPosition();
+            lat = position.coords.latitude;
+            lon = position.coords.longitude;
+            isRealLocation = true;
+        } catch (err) {
+            console.log("GPS 定位完全失敗，使用預設座標");
         }
 
         try {
-            // 從政府開放資料 API 取得九巴所有站點資料
             let res = await fetch("https://data.etabus.gov.hk/v1/transport/kmb/stop");
             let data = await res.json();
             let stops = data.data;
 
-            // 計算與當前 GPS 座標的距離
             stops.forEach(s => {
                 let dist = Math.sqrt(Math.pow(s.lat - lat, 2) + Math.pow(s.long - lon, 2));
                 s.distance = dist;
@@ -498,7 +498,6 @@
 
             container.innerHTML = "";
             
-            // 提示使用者目前定位狀態
             if (!isRealLocation) {
                 let warnMsg = document.createElement("div");
                 warnMsg.style = "font-size: 12px; color: var(--warn); text-align: center; margin-bottom: 10px;";
@@ -512,7 +511,7 @@
                 
                 let card = document.createElement("div");
                 card.className = "card";
-                card.style.borderLeftColor = "#e61c24"; // 九巴紅
+                card.style.borderLeftColor = "#e61c24";
                 card.innerHTML = `<div class='card-header'><span class='station-title'>🚏 ${stop.name_tc}</span><span style="font-size:11px; color:var(--text-sub);">九巴站</span></div><div id='${cardId}'>載入巴士班次中...</div>`;
                 container.appendChild(card);
 
@@ -537,24 +536,44 @@
                 return;
             }
 
-            // 過濾並整理最近的 4 班車
             let html = "";
-            let count = 0;
             let now = new Date();
+            
+            // 💡 專家解法：建立一個字典來記錄每條路線+方向已經顯示了幾班車
+            let routeDestCounter = {}; 
+            let displayCount = 0;
 
             for (let etaItem of etas) {
-                if (count >= 4) break;
+                if (displayCount >= 8) break; // 為防止版面過長，整個站最多顯示 8 行
                 if (!etaItem.eta) continue;
+
+                let dest = etaItem.dest_tc || "指定目的地";
+                let route = etaItem.route;
+                let dir = etaItem.dir;
+                
+                // 產生獨一無二的群組標籤，例如 "238X-O-中港碼頭"
+                let groupKey = `${route}-${dir}-${dest}`;
+
+                // 如果這個群組還沒出現過，初始化為 0
+                if (!routeDestCounter[groupKey]) {
+                    routeDestCounter[groupKey] = 0;
+                }
+
+                // 如果這個路線+方向已經顯示了 2 班車，就跳過不處理
+                if (routeDestCounter[groupKey] >= 2) {
+                    continue; 
+                }
 
                 let etaTime = new Date(etaItem.eta);
                 let diffMins = Math.round((etaTime - now) / 60000);
                 let timeStr = diffMins <= 0 ? "即將到達" : `${diffMins} 分鐘`;
                 let timeClass = diffMins <= 0 ? "time-soon" : "time-normal";
-                let dest = etaItem.dest_tc || "指定目的地";
-                let route = etaItem.route;
 
                 html += `<div class='train-row'><div class='train-row-left'><span class='line-badge' style='background-color: #e61c24'>九巴 ${route}</span></div><div class='train-row-center ${timeClass}'>${timeStr}</div><div class='train-row-right'>➔ ${dest}</div></div>`;
-                count++;
+                
+                // 成功加入版面後，將該群組的計數器 +1
+                routeDestCounter[groupKey]++;
+                displayCount++;
             }
 
             if (html === "") {
