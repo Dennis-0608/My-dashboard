@@ -213,7 +213,7 @@
             display: block;
             margin-bottom: 4px;
         }
-        select, input[type="text"] {
+        select {
             width: 100%;
             padding: 10px;
             background: #2c2c2e;
@@ -244,6 +244,7 @@
         <button id="tabBus" class="tab-btn" onclick="switchTab('bus')">🚌 巴士預報</button>
     </div>
 
+    <!-- MTR 頁面 -->
     <div id="section-mtr">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="section-label" style="margin:0;">📌 我的收藏車站</div>
@@ -257,6 +258,7 @@
         </div>
     </div>
 
+    <!-- 巴士頁面 -->
     <div id="section-bus" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="section-label" style="margin:0;">📌 我的收藏巴士站</div>
@@ -271,6 +273,7 @@
     </div>
 </div>
 
+<!-- MTR 彈出視窗 -->
 <div id="commonModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">查詢車站班次</div>
@@ -289,6 +292,7 @@
     </div>
 </div>
 
+<!-- 巴士彈出視窗 (經簡化回歸基本下拉選單) -->
 <div id="busModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">查詢巴士到站時間</div>
@@ -300,12 +304,11 @@
             </select>
         </div>
         <div class="select-group">
-            <label>2. 路線篩選與選擇 (輸入數字隨打即搜)：</label>
-            <input type="text" id="busRouteFilterInput" placeholder="例如輸入 1 篩選路線" oninput="filterBusRoutes()" style="margin-bottom: 6px;">
+            <label>2. 選擇路線：</label>
             <select id="busRouteSelect" onchange="onBusRouteChange()"></select>
         </div>
         <div class="select-group">
-            <label>3. 選擇方向及上車站：</label>
+            <label>3. 選擇方向及車站：</label>
             <select id="busStopSelect"></select>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -533,10 +536,9 @@
     function removeFavorite(index) { let favs = getFavorites(); favs.splice(index, 1); saveFavorites(favs); renderDashboard(); }
     function clearSearchedStation() { currentSearchedStation = null; renderDashboard(); }
 
-    /* ================= 巴士邏輯 (已修正與加強容錯) ================= */
+    /* ================= 巴士邏輯 (完全回歸基本的下拉選單) ================= */
     let busFavorites = JSON.parse(localStorage.getItem("bus_web_favorites")) || [];
     let currentSearchedBus = null;
-    let allBusRoutesCache = [];
 
     function saveBusFavorites(favs) { localStorage.setItem("bus_web_favorites", JSON.stringify(favs)); }
 
@@ -583,9 +585,8 @@
 
             let res = await fetch(url);
             let json = await res.json();
-            let etas = item.company === "kmb" ? (json.data || []) : (json.data || []);
+            let etas = json.data || [];
             
-            // 過濾符合該路線的預報
             let filteredEtas = etas.filter(e => e.route === item.route);
             filteredEtas.sort((a, b) => new Date(a.eta || 0) - new Date(b.eta || 0));
             let topEtas = filteredEtas.slice(0, 2);
@@ -615,7 +616,6 @@
 
     async function openBusModal() {
         document.getElementById("busModal").style.display = "flex";
-        document.getElementById("busRouteFilterInput").value = "";
         await onBusCompanyChange();
     }
     function closeBusModal() { document.getElementById("busModal").style.display = "none"; }
@@ -628,50 +628,25 @@
             let url = company === "kmb" ? "https://api.etabus.gov.hk/v1/transport/kmb/route/" : "https://rt.data.gov.hk/v1/transport/citybus/route/ctb";
             let res = await fetch(url);
             let json = await res.json();
-            allBusRoutesCache = json.data || [];
-            populateBusRoutes(allBusRoutesCache);
+            let routes = json.data || [];
+            
+            routeSel.innerHTML = "";
+            routes.forEach(r => {
+                let rNum = r.route || "";
+                let rDest = r.dest_tc || r.dest || "";
+                let opt = new Option(rNum + (rDest ? " 往 " + rDest : ""), rNum);
+                opt.dataset.dest = rDest;
+                opt.dataset.bound = r.bound || r.dir || "I";
+                opt.dataset.serviceType = r.service_type || "1";
+                routeSel.options.add(opt);
+            });
+
+            if (routeSel.options.length > 0) {
+                routeSel.selectedIndex = 0;
+                onBusRouteChange();
+            }
         } catch (e) {
             routeSel.innerHTML = "<option>載入路線失敗</option>";
-        }
-    }
-
-    function populateBusRoutes(routes) {
-        let routeSel = document.getElementById("busRouteSelect");
-        routeSel.innerHTML = "";
-        if (!routes || routes.length === 0) {
-            routeSel.innerHTML = "<option value=''>沒有符合的路線</option>";
-            document.getElementById("busStopSelect").innerHTML = "<option value=''>無可用車站</option>";
-            return;
-        }
-        
-        let limitRoutes = routes.slice(0, 150);
-        limitRoutes.forEach(r => {
-            let rNum = r.route || "";
-            let rDest = r.dest_tc || r.dest || "";
-            let opt = new Option(rNum + (rDest ? " 往 " + rDest : ""), rNum);
-            opt.dataset.dest = rDest;
-            opt.dataset.bound = r.bound || r.dir || "I";
-            opt.dataset.serviceType = r.service_type || "1";
-            routeSel.options.add(opt);
-        });
-
-        if (routeSel.options.length > 0) {
-            routeSel.selectedIndex = 0;
-            onBusRouteChange();
-        }
-    }
-
-    function filterBusRoutes() {
-        let keyword = document.getElementById("busRouteFilterInput").value.trim().toUpperCase();
-        if (!keyword) {
-            populateBusRoutes(allBusRoutesCache);
-        } else {
-            let filtered = allBusRoutesCache.filter(r => {
-                let rNum = (r.route || "").toString().toUpperCase();
-                let rDest = (r.dest_tc || r.dest || "").toUpperCase();
-                return rNum.includes(keyword) || rDest.includes(keyword);
-            });
-            populateBusRoutes(filtered);
         }
     }
 
@@ -691,7 +666,6 @@
         try {
             let routeStops = [];
             if (company === "kmb") {
-                // 九巴可能有多個 bound，嘗試抓取常見方向以防萬清單為空
                 let bounds = [selectedOpt.dataset.bound, "I", "O"];
                 for (let b of bounds) {
                     let rUrl = `https://api.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${b}/${selectedOpt.dataset.serviceType || 1}`;
@@ -699,12 +673,11 @@
                     let rJson = await rRes.json();
                     if (rJson && rJson.data && rJson.data.length > 0) {
                         routeStops = rJson.data;
-                        selectedOpt.dataset.bound = b; // 更新正確bound
+                        selectedOpt.dataset.bound = b;
                         break;
                     }
                 }
             } else {
-                // 城巴路線站點
                 let rUrl = `https://rt.data.gov.hk/v1/transport/citybus/route-stop/ctb/${route}`;
                 let rRes = await fetch(rUrl);
                 let rJson = await rRes.json();
