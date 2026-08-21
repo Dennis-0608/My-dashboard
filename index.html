@@ -399,13 +399,15 @@
                             for (let item of rawList) { 
                                 if (item.time) { 
                                     let tTime = new Date(item.time.replace(/-/g, "/")); 
-                                    let diffDiffSeconds = Math.floor((tTime - now) / 1000); 
+                                    let diffSeconds = Math.floor((tTime - now) / 1000); 
                                     
-                                    if (diffDiffSeconds >= -40) { 
-                                        let diffMins = Math.floor(diffDiffSeconds / 60); 
+                                    // 容許剛離開車站 10 秒內（-10秒以上）的班次顯示「正在離開」
+                                    if (diffSeconds >= -10) { 
+                                        let diffMins = Math.floor(diffSeconds / 60); 
                                         allTrains.push({ 
                                             lineCode: lCode, 
                                             rawTime: tTime, 
+                                            diffSeconds: diffSeconds,
                                             countdown: diffMins < 0 ? 0 : diffMins, 
                                             destination: translateDest(item.dest) 
                                         }); 
@@ -425,14 +427,26 @@
         
         if (allTrains.length > 0) { 
             let html = ""; 
-            // 修正：轉車站顯示 6 個，普通車站顯示 3 個
             let displayLimit = isTransfer ? 6 : 3; 
             
             for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) { 
                 let t = allTrains[i]; 
                 let lObj = MTR_LINES[t.lineCode]; 
-                let timeStr = t.countdown <= 0 ? "即將到達" : t.countdown + " 分鐘"; 
-                let timeClass = t.countdown <= 0 ? "time-soon" : "time-normal"; 
+                
+                let timeStr = "";
+                let timeClass = "time-normal";
+
+                if (t.diffSeconds < 0) {
+                    timeStr = "正在離開";
+                    timeClass = "time-soon";
+                } else if (t.countdown === 0) {
+                    timeStr = "即將抵達";
+                    timeClass = "time-soon";
+                } else {
+                    timeStr = t.countdown + " 分鐘";
+                    timeClass = "time-normal";
+                }
+
                 let bgColor = lObj ? lObj.color : "#333";
                 let lName = lObj ? lObj.name : t.lineCode;
 
