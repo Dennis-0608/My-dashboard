@@ -251,7 +251,7 @@
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
-        "ISL": { name: "港島線", color: "#0072bc", stations: { "KEF": "堅尼地城", "HKU": "香港大學", "SYP": "西營盤", "SHW": "上環", "CEN": "中環", "ADM": "金鐘", "WAC": "灣仔", "CAB": "銅邏灣", "TIH": "天后", "FOH": "炮台山", "NOP": "北角", "QUO": "鰂魚涌", "TAK": "太古", "SWH": "西灣河", "SKW": "筲箕灣", "HFC": "杏花邨", "CHW": "柴灣" } },
+        "ISL": { name: "港島線", color: "#0072bc", stations: { "KEF": "堅尼地城", "HKU": "香港大學", "SYP": "西營盤", "SHW": "上環", "CEN": "中環", "ADM": "金鐘", "WAC": "灣仔", "CAB": "銅鑼灣", "TIH": "天后", "FOH": "炮台山", "NOP": "北角", "QUO": "鰂魚涌", "TAK": "太古", "SWH": "西灣河", "SKW": "筲箕灣", "HFC": "杏花邨", "CHW": "柴灣" } },
         "SIL": { name: "南港島線", color: "#b9d233", stations: { "ADM": "金鐘", "OCP": "海洋公園", "WCH": "黃竹坑", "LET": "利東", "SOH": "海怡半島" } },
         "TKL": { name: "將軍澳線", color: "#7e3d8f", stations: { "NOP": "北角", "QUO": "鰂魚涌", "YAT": "油塘", "TIK": "調景嶺", "TKO": "將軍澳", "HAH": "坑口", "POA": "寶琳", "LHP": "康城" } },
         "TCL": { name: "東涌線", color: "#f3823a", stations: { "HKG": "香港", "NAC": "九龍", "OLY": "奧運", "NAC_ST": "南昌", "LAK": "荔景", "TSY": "青衣", "SUN": "欣澳", "TUC": "東涌" } },
@@ -300,18 +300,19 @@
         renderSearchedList(); 
     }
 
-    /* 天氣代碼解析 */
+    /* 天氣代碼解析與圖示匹配 */
     function parseWeatherCode(code) {
-        if (code === 0) return "晴朗";
-        if (code >= 1 && code <= 3) return "多雲";
-        if (code >= 45 && code <= 48) return "有霧";
-        if (code >= 51 && code <= 67) return "有雨";
-        if (code >= 80 && code <= 82) return "陣雨";
-        if (code >= 95) return "雷暴";
-        return "晴朗";
+        if (code === 0) return { text: "晴朗", icon: "☀️" };
+        if (code >= 1 && code <= 2) return { text: "多雲", icon: "⛅" };
+        if (code === 3) return { text: "陰天", icon: "☁️" };
+        if (code >= 45 && code <= 48) return { text: "有霧", icon: "🌫️" };
+        if (code >= 51 && code <= 67) return { text: "有雨", icon: "🌧️" };
+        if (code >= 80 && code <= 82) return { text: "陣雨", icon: "🌦️" };
+        if (code >= 95) return { text: "雷暴", icon: "⚡" };
+        return { text: "晴朗", icon: "☀️" };
     }
 
-    /* 異步載入香港天氣數據 */
+    /* 異步載入香港天氣數據與 Icon */
     async function fetchWeather() {
         let weatherEl = document.getElementById("global-weather");
         try {
@@ -319,10 +320,11 @@
             if (!res.ok) throw new Error();
             let data = await res.json();
             let temp = Math.round(data.current_weather.temperature);
-            let desc = parseWeatherCode(data.current_weather.weathercode);
-            weatherEl.innerText = "天氣: " + temp + "°C " + desc;
+            let weatherInfo = parseWeatherCode(data.current_weather.weathercode);
+            
+            weatherEl.innerText = "天氣: " + weatherInfo.icon + " " + temp + "°C " + weatherInfo.text;
         } catch (e) {
-            weatherEl.innerText = "天氣: 28°C 多雲"; 
+            weatherEl.innerText = "天氣: ⛅ 28°C 多雲"; 
         }
     }
 
@@ -379,7 +381,7 @@
         loadStationSchedule(station.lineCode, station.stationCode, cardId); 
     }
 
-    /* 載入車站即時班次（修正倒數與註解安全） */
+    /* 載入車站即時班次 */
     async function loadStationSchedule(lineCode, stationCode, elementId) { 
         let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined; 
         let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode]; 
@@ -399,11 +401,8 @@
                     for (let item of rawList) { 
                         if (item.time) { 
                             let tTime = new Date(item.time.replace(/-/g, "/")); 
-                            
-                            /* 精確計算秒數 */
                             let diffDiffSeconds = Math.floor((tTime - now) / 1000); 
                             
-                            /* 大於 -20 秒（過站緩衝）均納入顯示 */
                             if (diffDiffSeconds >= -20) { 
                                 let diffMins = Math.floor(diffDiffSeconds / 60); 
                                 allTrains.push({ 
