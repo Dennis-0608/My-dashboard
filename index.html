@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTR 即時班次</title>
+    <title>香港交通即時班次</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -40,14 +40,15 @@
             align-items: center;
             gap: 8px;
         }
-        .logo-symbol {
-            font-size: 32px;
-            line-height: 1;
-        }
-        h1 {
-            font-size: 18px;
-            margin: 0;
-            line-height: 1.2;
+        .logo-select {
+            background-color: #2c2c2e;
+            color: var(--text-main);
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
         }
         .header-right {
             text-align: right;
@@ -74,15 +75,10 @@
         .btn:hover {
             background-color: #3a3a3c;
         }
-        .btn-primary {
-            background-color: #1c58d9;
-        }
-        .btn-success {
-            background-color: #248a3d;
-        }
-        .btn-danger {
-            background-color: #a91d1a;
-        }
+        .btn-primary { background-color: #1c58d9; }
+        .btn-success { background-color: #248a3d; }
+        .btn-danger { background-color: #a91d1a; }
+        
         .card {
             background-color: var(--card-bg);
             border-radius: 14px;
@@ -109,20 +105,15 @@
         }
         .train-row {
             display: grid;
-            grid-template-columns: 100px 1fr 100px;
+            grid-template-columns: 110px 1fr 110px;
             align-items: center;
             margin-bottom: 8px;
             font-size: 14px;
         }
-        .train-row-left {
-            text-align: left;
-        }
-        .train-row-center {
-            text-align: center;
-        }
-        .train-row-right {
-            text-align: right;
-        }
+        .train-row-left { text-align: left; }
+        .train-row-center { text-align: center; }
+        .train-row-right { text-align: right; }
+        
         .line-badge {
             font-weight: bold;
             padding: 2px 6px;
@@ -131,75 +122,34 @@
             color: #ffffff;
             display: inline-block;
         }
-        .time-soon {
-            color: var(--warn);
-            font-weight: bold;
-        }
-        .time-normal {
-            color: var(--accent);
-            font-weight: bold;
-        }
+        .time-soon { color: var(--warn); font-weight: bold; }
+        .time-normal { color: var(--accent); font-weight: bold; }
         .section-label {
             font-size: 13px;
             color: var(--text-sub);
             margin: 12px 0 6px 4px;
             font-weight: bold;
         }
-        @media screen and (min-width: 600px) and (orientation: landscape) {
-            .container {
-                max-width: 640px;
-            }
-            body {
-                padding: 20px;
-            }
-        }
         .modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7);
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            z-index: 1000;
+            justify-content: center; align-items: center;
+            padding: 20px; box-sizing: border-box; z-index: 1000;
         }
         .modal-content {
             background: var(--card-bg);
-            width: 100%;
-            max-width: 400px;
-            border-radius: 16px;
-            padding: 20px;
-            box-sizing: border-box;
-            max-height: 80vh;
-            overflow-y: auto;
+            width: 100%; max-width: 400px;
+            border-radius: 16px; padding: 20px;
+            box-sizing: border-box; max-height: 80vh; overflow-y: auto;
         }
-        .modal-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .select-group {
-            margin-bottom: 12px;
-        }
-        label {
-            font-size: 13px;
-            color: var(--text-sub);
-            display: block;
-            margin-bottom: 4px;
-        }
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .select-group { margin-bottom: 12px; }
+        label { font-size: 13px; color: var(--text-sub); display: block; margin-bottom: 4px; }
         select {
-            width: 100%;
-            padding: 10px;
-            background: #2c2c2e;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            width: 100%; padding: 10px; background: #2c2c2e; color: white;
+            border: none; border-radius: 8px; font-size: 14px;
         }
     </style>
 </head>
@@ -208,8 +158,10 @@
 <div class="container">
     <header>
         <div class="header-title-wrapper">
-            <span class="logo-symbol">🚇</span>
-            <h1>MTR 即時班次</h1>
+            <select id="modeSelect" class="logo-select" onchange="switchMode()">
+                <option value="mtr">🚇 MTR 即時班次</option>
+                <option value="bus">🚌 巴士到站預報</option>
+            </select>
         </div>
         <div class="header-right">
             <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
@@ -217,17 +169,29 @@
         </div>
     </header>
 
-    <div id="favorites-section">
-        <div class="section-label">📌 我的收藏車站</div>
-        <div id="favorites-list"><p style="text-align:center; color: var(--text-sub);">載入中...</p></div>
+    <!-- MTR 介面區塊 -->
+    <div id="mtr-container">
+        <div id="favorites-section">
+            <div class="section-label">📌 我的收藏車站</div>
+            <div id="favorites-list"><p style="text-align:center; color: var(--text-sub);">載入中...</p></div>
+        </div>
+        <div id="searched-section" style="display: none;">
+            <div class="section-label">🔍 臨時查詢車站</div>
+            <div id="searched-list"></div>
+        </div>
     </div>
 
-    <div id="searched-section" style="display: none;">
-        <div class="section-label">🔍 臨時查詢車站</div>
-        <div id="searched-list"></div>
+    <!-- 巴士介面區塊 -->
+    <div id="bus-container" style="display: none;">
+        <div class="section-label">📍 附近巴士站 (依 GPS 定位)</div>
+        <div style="margin-bottom: 10px;">
+            <button class="btn btn-primary" onclick="fetchNearbyBuses()" style="width:100%; padding: 10px;">🔄 重新整理附近巴士</button>
+        </div>
+        <div id="bus-stops-list"><p style="text-align:center; color: var(--text-sub);">正在透過 GPS 尋找附近巴士站...</p></div>
     </div>
 </div>
 
+<!-- MTR 查詢彈窗 -->
 <div id="commonModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">查詢車站班次</div>
@@ -247,7 +211,7 @@
 </div>
 
 <script>
-    /* 港鐵路線與車站資料字典 */
+    /* ================= 港鐵資料與邏輯 ================= */
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
@@ -261,46 +225,52 @@
         "TML": { name: "屯馬線", color: "#993d00", stations: { "WKS": "烏溪沙", "MOS": "馬鞍山", "HEA": "恆安", "STW": "大水坑", "CIO": "石門", "CKT": "第一城", "STT": "沙田圍", "TKW_C": "車公廟", "TAW": "大圍", "HIK": "顯徑", "DIH": "鑽石山", "KAT": "啟德", "SUW": "宋皇臺", "TKW": "土瓜灣", "HOM": "何文田", "HUH": "紅磡", "ETS": "尖東", "AUS": "柯士甸", "NAC": "南昌", "MEF": "美孚", "TWW": "荃灣西", "KSR": "錦上路", "YUL": "元朗", "LUM": "朗屏", "SIH": "兆康", "TUM": "屯門" } }
     };
 
-    /* 轉車站對照表 */
     const TRANSFER_STATIONS = { 
-        "ADM": ["TWL", "ISL", "EAL", "SIL"], 
-        "NOP": ["TKL", "ISL"], 
-        "PRE": ["TWL", "KTL"], 
-        "MKK": ["TWL", "KTL"], 
-        "YMT": ["TWL", "KTL"], 
-        "TIK": ["TKL", "KTL"], 
-        "LAK": ["TWL", "TCL"], 
-        "NAC": ["TCL", "TML"], 
-        "MEF": ["TWL", "TML"], 
-        "DIH": ["KTL", "TML"], 
-        "HOM": ["KTL", "TML"], 
-        "TAW": ["EAL", "TML"], 
-        "KOT": ["KTL", "EAL"], 
-        "HUH": ["EAL", "TML"] 
+        "ADM": ["TWL", "ISL", "EAL", "SIL"], "NOP": ["TKL", "ISL"], "PRE": ["TWL", "KTL"], 
+        "MKK": ["TWL", "KTL"], "YMT": ["TWL", "KTL"], "TIK": ["TKL", "KTL"], 
+        "LAK": ["TWL", "TCL"], "NAC": ["TCL", "TML"], "MEF": ["TWL", "TML"], 
+        "DIH": ["KTL", "TML"], "HOM": ["KTL", "TML"], "TAW": ["EAL", "TML"], 
+        "KOT": ["KTL", "EAL"], "HUH": ["EAL", "TML"] 
     };
 
     let currentSearchedStation = null;
+    let currentMode = "mtr";
 
-    /* 取得與儲存 LocalStorage 收藏 */
     function getFavorites() { 
         let favs = localStorage.getItem("mtr_web_favorites"); 
         return favs ? JSON.parse(favs) : [{ lineCode: "TKL", stationCode: "LHP", stationName: "康城" }, { lineCode: "TWL", stationCode: "ADM", stationName: "金鐘" }]; 
     }
-    function saveFavorites(favs) { 
-        localStorage.setItem("mtr_web_favorites", JSON.stringify(favs)); 
+    function saveFavorites(favs) { localStorage.setItem("mtr_web_favorites", JSON.stringify(favs)); }
+
+    /* ================= 切換模式 (MTR / Bus) ================= */
+    function switchMode() {
+        currentMode = document.getElementById("modeSelect").value;
+        let mtrContainer = document.getElementById("mtr-container");
+        let busContainer = document.getElementById("bus-container");
+
+        if (currentMode === "mtr") {
+            mtrContainer.style.display = "block";
+            busContainer.style.display = "none";
+            renderDashboard();
+        } else {
+            mtrContainer.style.display = "none";
+            busContainer.style.display = "block";
+            fetchNearbyBuses();
+        }
     }
 
-    /* 渲染主控板 */
+    /* ================= 全局更新 (時間與天氣) ================= */
     async function renderDashboard() { 
         let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); 
         document.getElementById("global-update-time").innerText = "更新時間: " + nowStr; 
         
         fetchWeather(); 
-        renderFavoritesList(); 
-        renderSearchedList(); 
+        if (currentMode === "mtr") {
+            renderFavoritesList(); 
+            renderSearchedList(); 
+        }
     }
 
-    /* 天氣代碼解析與圖示匹配 */
     function parseWeatherCode(code) {
         if (code === 0) return { text: "晴朗", icon: "☀️" };
         if (code >= 1 && code <= 2) return { text: "多雲", icon: "⛅" };
@@ -312,15 +282,10 @@
         return { text: "晴朗", icon: "☀️" };
     }
 
-    /* 取得 GPS 並異步載入天氣數據（加入防呆超時保護） */
     async function fetchWeather() {
         let weatherEl = document.getElementById("global-weather");
-        
-        // 預設香港座標（作為備用方案）
-        let lat = 22.3193;
-        let lon = 114.1694;
+        let lat = 22.3193, lon = 114.1694;
 
-        // 嘗試取得 GPS，加入 3 秒超時保護，避免在 iOS Chrome 卡死
         if (navigator.geolocation) {
             try {
                 let position = await new Promise((resolve, reject) => {
@@ -333,9 +298,7 @@
                 });
                 lat = position.coords.latitude;
                 lon = position.coords.longitude;
-            } catch (err) {
-                console.log("GPS 未授權或逾時，自動使用預設香港座標。");
-            }
+            } catch (err) { console.log("GPS 逾時，使用預設座標"); }
         }
 
         try {
@@ -344,14 +307,13 @@
             let data = await res.json();
             let temp = Math.round(data.current_weather.temperature);
             let weatherInfo = parseWeatherCode(data.current_weather.weathercode);
-            
             weatherEl.innerText = `${weatherInfo.icon} ${temp}°C ${weatherInfo.text}`;
         } catch (e) {
             weatherEl.innerText = "⛅ 28°C 多雲"; 
         }
     }
 
-    /* 渲染收藏列表 */
+    /* ================= MTR 渲染邏輯 ================= */
     async function renderFavoritesList() { 
         let favs = getFavorites(); 
         let container = document.getElementById("favorites-list"); 
@@ -371,23 +333,18 @@
             let card = document.createElement("div"); 
             card.className = "card"; 
             card.style.borderLeftColor = lineHexColor; 
-            card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + fav.stationName + "站 ⭐</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick=\"addFavorite('" + fav.lineCode + "', '" + fav.stationCode + "', '" + fav.stationName + "')\">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='removeFavorite(" + i + ")'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
-            
+            card.innerHTML = `<div class='card-header'><span class='station-title'>🚝 ${fav.stationName}站 ⭐</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick="addFavorite('${fav.lineCode}', '${fav.stationCode}', '${fav.stationName}')">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='removeFavorite(${i})'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='${cardId}'>載入班次中...</div>`; 
             container.appendChild(card); 
             loadStationSchedule(fav.lineCode, fav.stationCode, cardId); 
         } 
     }
 
-    /* 渲染搜尋列表 */
     async function renderSearchedList() { 
         let section = document.getElementById("searched-section"); 
         let container = document.getElementById("searched-list"); 
         container.innerHTML = ""; 
         
-        if (!currentSearchedStation) { 
-            section.style.display = "none"; 
-            return; 
-        } 
+        if (!currentSearchedStation) { section.style.display = "none"; return; } 
         
         section.style.display = "block"; 
         let station = currentSearchedStation; 
@@ -398,13 +355,11 @@
         let card = document.createElement("div"); 
         card.className = "card"; 
         card.style.borderLeftColor = lineHexColor; 
-        card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + station.stationName + "站</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick=\"saveSearchedToFavorites('" + station.lineCode + "', '" + station.stationCode + "', '" + station.stationName + "')\">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='clearSearchedStation()'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
-        
+        card.innerHTML = `<div class='card-header'><span class='station-title'>🚝 ${station.stationName}站</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick="saveSearchedToFavorites('${station.lineCode}', '${station.stationCode}', '${station.stationName}')">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='clearSearchedStation()'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='${cardId}'>載入班次中...</div>`; 
         container.appendChild(card); 
         loadStationSchedule(station.lineCode, station.stationCode, cardId); 
     }
 
-    /* 載入車站即時班次 */
     async function loadStationSchedule(lineCode, stationCode, elementId) { 
         let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined; 
         let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode]; 
@@ -413,9 +368,9 @@
 
         for (let lCode of linesToFetch) { 
             try { 
-                let res = await fetch("https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=" + lCode + "&sta=" + stationCode); 
+                let res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${lCode}&sta=${stationCode}`); 
                 let json = await res.json(); 
-                let key = lCode + "-" + stationCode; 
+                let key = `${lCode}-${stationCode}`; 
                 
                 if (json && json.status === 1 && json.data && json.data[key]) { 
                     let sData = json.data[key]; 
@@ -424,10 +379,10 @@
                     for (let item of rawList) { 
                         if (item.time) { 
                             let tTime = new Date(item.time.replace(/-/g, "/")); 
-                            let diffDiffSeconds = Math.floor((tTime - now) / 1000); 
+                            let diffSeconds = Math.floor((tTime - now) / 1000); 
                             
-                            if (diffDiffSeconds >= -20) { 
-                                let diffMins = Math.floor(diffDiffSeconds / 60); 
+                            if (diffSeconds >= -20) { 
+                                let diffMins = Math.floor(diffSeconds / 60); 
                                 allTrains.push({ 
                                     lineCode: lCode, 
                                     rawTime: tTime, 
@@ -438,9 +393,7 @@
                         } 
                     } 
                 } 
-            } catch (e) { 
-                console.error(e); 
-            } 
+            } catch (e) { console.error(e); } 
         } 
 
         allTrains.sort((a, b) => a.rawTime - b.rawTime); 
@@ -449,16 +402,15 @@
         if (allTrains.length > 0) { 
             let html = ""; 
             let displayLimit = isTransfer ? 6 : 3; 
-            
             for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) { 
                 let t = allTrains[i]; 
                 let lObj = MTR_LINES[t.lineCode]; 
-                let timeStr = t.countdown <= 0 ? "即將到達" : t.countdown + " 分鐘"; 
+                let timeStr = t.countdown <= 0 ? "即將到達" : `${t.countdown} 分鐘`; 
                 let timeClass = t.countdown <= 0 ? "time-soon" : "time-normal"; 
                 let bgColor = lObj ? lObj.color : "#333";
                 let lName = lObj ? lObj.name : t.lineCode;
 
-                html += "<div class='train-row'><div class='train-row-left'><span class='line-badge' style='background-color: " + bgColor + "'>" + lName + "</span></div><div class='train-row-center " + timeClass + "'>" + timeStr + "</div><div class='train-row-right'>➔ " + t.destination + "</div></div>"; 
+                html += `<div class='train-row'><div class='train-row-left'><span class='line-badge' style='background-color: ${bgColor}'>${lName}</span></div><div class='train-row-center ${timeClass}'>${timeStr}</div><div class='train-row-right'>➔ ${t.destination}</div></div>`; 
             } 
             el.innerHTML = html; 
         } else { 
@@ -466,7 +418,6 @@
         } 
     }
 
-    /* 目的地代碼轉換 */
     function translateDest(destCode) { 
         if (!destCode) return "市區"; 
         const specialDestMap = { 
@@ -484,20 +435,123 @@
         return destCode; 
     }
 
-    /* 彈窗控制與功能 */
+    /* ================= 巴士到站預報與 GPS 邏輯 ================= */
+    async function fetchNearbyBuses() {
+        let container = document.getElementById("bus-stops-list");
+        container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>正在透過 GPS 定位尋找附近巴士站...</p>";
+
+        let lat = 22.3193, lon = 114.1694;
+        if (navigator.geolocation) {
+            try {
+                let position = await new Promise((resolve, reject) => {
+                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 4000);
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => { clearTimeout(timer); resolve(pos); },
+                        (err) => { clearTimeout(timer); reject(err); },
+                        { timeout: 4000, maximumAge: 60000, enableHighAccuracy: false }
+                    );
+                });
+                lat = position.coords.latitude;
+                lon = position.coords.longitude;
+            } catch (err) {
+                console.log("GPS 逾時或未授權，使用預設座標");
+            }
+        }
+
+        try {
+            // 從政府開放資料 API 取得九巴所有站點資料
+            let res = await fetch("https://data.etabus.gov.hk/v1/transport/kmb/stop");
+            let data = await res.json();
+            let stops = data.data;
+
+            // 計算與當前 GPS 座標的距離，找出最近的 3 個九巴站點
+            stops.forEach(s => {
+                let dist = Math.sqrt(Math.pow(s.lat - lat, 2) + Math.pow(s.long - lon, 2));
+                s.distance = dist;
+            });
+
+            stops.sort((a, b) => a.distance - b.distance);
+            let nearestStops = stops.slice(0, 3);
+
+            if (nearestStops.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>附近找不到巴士站。</p>";
+                return;
+            }
+
+            container.innerHTML = "";
+            for (let i = 0; i < nearestStops.length; i++) {
+                let stop = nearestStops[i];
+                let cardId = `bus-card-${i}`;
+                
+                let card = document.createElement("div");
+                card.className = "card";
+                card.style.borderLeftColor = "#e61c24"; // 九巴紅
+                card.innerHTML = `<div class='card-header'><span class='station-title'>🚏 ${stop.name_tc}</span><span style="font-size:11px; color:var(--text-sub);">九巴站</span></div><div id='${cardId}'>載入巴士班次中...</div>`;
+                container.appendChild(card);
+
+                loadBusStopEta(stop.stop, cardId);
+            }
+
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = "<p style='text-align:center; color: var(--danger);'>載入巴士資料失敗，請稍後再試。</p>";
+        }
+    }
+
+    async function loadBusStopEta(stopId, elementId) {
+        let el = document.getElementById(elementId);
+        try {
+            let res = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopId}`);
+            let json = await res.json();
+            let etas = json.data;
+
+            if (!etas || etas.length === 0) {
+                el.innerHTML = "<div style='font-size:13px; color: var(--text-sub);'>目前該站無預報班次</div>";
+                return;
+            }
+
+            // 過濾並整理最近的 4 班車
+            let html = "";
+            let count = 0;
+            let now = new Date();
+
+            for (let etaItem of etas) {
+                if (count >= 4) break;
+                if (!etaItem.eta) continue;
+
+                let etaTime = new Date(etaItem.eta);
+                let diffMins = Math.round((etaTime - now) / 60000);
+                let timeStr = diffMins <= 0 ? "即將到達" : `${diffMins} 分鐘`;
+                let timeClass = diffMins <= 0 ? "time-soon" : "time-normal";
+                let dest = etaItem.dest_tc || "指定目的地";
+                let route = etaItem.route;
+
+                html += `<div class='train-row'><div class='train-row-left'><span class='line-badge' style='background-color: #e61c24'>九巴 ${route}</span></div><div class='train-row-center ${timeClass}'>${timeStr}</div><div class='train-row-right'>➔ ${dest}</div></div>`;
+                count++;
+            }
+
+            if (html === "") {
+                html = "<div style='font-size:13px; color: var(--text-sub);'>目前無即時班次</div>";
+            }
+            el.innerHTML = html;
+
+        } catch (e) {
+            el.innerHTML = "<div style='font-size:13px; color: var(--danger);'>無法取得到站時間</div>";
+        }
+    }
+
+    /* ================= 彈窗與收藏控制 ================= */
     function openModal() { 
         let lineSel = document.getElementById("lineSelect"); 
         lineSel.innerHTML = ""; 
         for (let lKey in MTR_LINES) { 
-            lineSel.innerHTML += "<option value='" + lKey + "'>" + MTR_LINES[lKey].name + "</option>"; 
+            lineSel.innerHTML += `<option value='${lKey}'>${MTR_LINES[lKey].name}</option>`; 
         } 
         updateStationOptions(); 
         document.getElementById("commonModal").style.display = "flex"; 
     }
 
-    function closeModal() { 
-        document.getElementById("commonModal").style.display = "none"; 
-    }
+    function closeModal() { document.getElementById("commonModal").style.display = "none"; }
 
     function updateStationOptions() { 
         let lineKey = document.getElementById("lineSelect").value; 
@@ -510,9 +564,7 @@
     }
 
     function handleModalConfirm() { 
-        let lineKey = document.getElementById("lineSelect.value"); 
-        // 修正下拉選單取值
-        let lineKeySelect = document.getElementById("lineSelect").value;
+        let lineKeySelect = document.getElementById("lineSelect").value; 
         let sCode = document.getElementById("stationSelect").value; 
         let sName = MTR_LINES[lineKeySelect].stations[sCode]; 
         currentSearchedStation = { lineCode: lineKeySelect, stationCode: sCode, stationName: sName }; 
@@ -522,14 +574,8 @@
 
     function addFavorite(lineKey, sCode, sName) { 
         let favs = getFavorites(); 
-        if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) { 
-            alert("此車站已經在收藏中！"); 
-            return; 
-        } 
-        if (favs.length >= 3) { 
-            alert("收藏上限為 3 個車站！"); 
-            return; 
-        } 
+        if (favs.some(f => f.stationCode === sCode && f.lineKey === lineKey)) { alert("此車站已經在收藏中！"); return; } 
+        if (favs.length >= 3) { alert("收藏上限為 3 個車站！"); return; } 
         favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName }); 
         saveFavorites(favs); 
         renderDashboard(); 
@@ -537,11 +583,8 @@
 
     function saveSearchedToFavorites(lineKey, sCode, sName) { 
         let favs = getFavorites(); 
-        if (!favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) { 
-            if (favs.length >= 3) { 
-                alert("收藏上限為 3 個車站！"); 
-                return; 
-            } 
+        if (!favs.some(f => f.stationCode === sCode && f.lineKey === lineKey)) { 
+            if (favs.length >= 3) { alert("收藏上限為 3 個車站！"); return; } 
             favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName }); 
             saveFavorites(favs); 
         } 
@@ -561,7 +604,7 @@
         renderDashboard(); 
     }
 
-    /* 首次啟動與定時器（每30秒自動更新） */
+    /* 首次啟動與定時器 */
     renderDashboard(); 
     setInterval(renderDashboard, 30000);
 </script>
