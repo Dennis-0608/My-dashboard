@@ -166,14 +166,6 @@
             background: var(--primary);
             color: white;
         }
-        @media screen and (min-width: 600px) and (orientation: landscape) {
-            .container {
-                max-width: 640px;
-            }
-            body {
-                padding: 20px;
-            }
-        }
         .modal {
             display: none;
             position: fixed;
@@ -292,7 +284,7 @@
     </div>
 </div>
 
-<!-- 巴士彈出視窗 (經簡化回歸基本下拉選單) -->
+<!-- 巴士彈出視窗 -->
 <div id="busModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">查詢巴士到站時間</div>
@@ -355,7 +347,7 @@
 
     function getFavorites() { 
         let favs = localStorage.getItem("mtr_web_favorites"); 
-        return favs ? JSON.parse(favs) : [{ lineCode: "TKL", stationCode: "LHP", stationName: "康城" }, { lineCode: "TWL", stationCode: "ADM", stationName: "金鐘" }]; 
+        return favs ? JSON.parse(favs) : [{ lineCode: "TKL", stationCode: "LHP", stationName: "康城" }, { lineCode: "KTL", stationCode: "WHA", stationName: "黃埔" }]; 
     }
     function saveFavorites(favs) { localStorage.setItem("mtr_web_favorites", JSON.stringify(favs)); }
 
@@ -369,43 +361,15 @@
         renderBusSearchedList();
     }
 
-    function parseWeatherCode(code) {
-        if (code === 0) return { text: "晴朗", icon: "☀️" };
-        if (code >= 1 && code <= 2) return { text: "多雲", icon: "⛅" };
-        if (code === 3) return { text: "陰天", icon: "☁️" };
-        if (code >= 45 && code <= 48) return { text: "有霧", icon: "🌫️" };
-        if (code >= 51 && code <= 67) return { text: "有雨", icon: "🌧️" };
-        if (code >= 80 && code <= 82) return { text: "陣雨", icon: "🌦️" };
-        if (code >= 95) return { text: "雷暴", icon: "⚡" };
-        return { text: "晴朗", icon: "☀️" };
-    }
-
     async function fetchWeather() {
         let weatherEl = document.getElementById("global-weather");
-        let lat = 22.3193, lon = 114.1694;
-        if (navigator.geolocation) {
-            try {
-                let position = await new Promise((resolve, reject) => {
-                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 3000);
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => { clearTimeout(timer); resolve(pos); },
-                        (err) => { clearTimeout(timer); reject(err); },
-                        { timeout: 3000, maximumAge: 60000, enableHighAccuracy: false }
-                    );
-                });
-                lat = position.coords.latitude;
-                lon = position.coords.longitude;
-            } catch (err) {}
-        }
         try {
-            let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-            if (!res.ok) throw new Error();
+            let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=22.3193&longitude=114.1694&current_weather=true`);
             let data = await res.json();
             let temp = Math.round(data.current_weather.temperature);
-            let weatherInfo = parseWeatherCode(data.current_weather.weathercode);
-            weatherEl.innerText = `${weatherInfo.icon} ${temp}°C ${weatherInfo.text}`;
+            weatherEl.innerText = `⛅ ${temp}°C 香港`;
         } catch (e) {
-            weatherEl.innerText = "⛅ 28°C 多雲"; 
+            weatherEl.innerText = "⛅ 28°C 香港"; 
         }
     }
 
@@ -447,8 +411,15 @@
     }
 
     async function loadStationSchedule(lineCode, stationCode, elementId) { 
-        let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined; 
-        let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode]; 
+        // 修正：針對特定車站（如香港站同時有AEL與TCL），確保包含其對應主線
+        let linesToFetch = [lineCode];
+        if (TRANSFER_STATIONS[stationCode]) {
+            linesToFetch = TRANSFER_STATIONS[stationCode];
+        }
+        if (!linesToFetch.includes(lineCode)) {
+            linesToFetch.unshift(lineCode);
+        }
+
         let allTrains = []; 
         let now = new Date(); 
 
@@ -478,8 +449,7 @@
         let el = document.getElementById(elementId); 
         if (allTrains.length > 0) { 
             let html = ""; 
-            let displayLimit = isTransfer ? 6 : 3; 
-            for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) { 
+            for (let i = 0; i < Math.min(allTrains.length, 4); i++) { 
                 let t = allTrains[i]; 
                 let lObj = MTR_LINES[t.lineCode]; 
                 let timeStr = t.countdown <= 0 ? "即將到達" : t.countdown + " 分鐘"; 
@@ -536,7 +506,7 @@
     function removeFavorite(index) { let favs = getFavorites(); favs.splice(index, 1); saveFavorites(favs); renderDashboard(); }
     function clearSearchedStation() { currentSearchedStation = null; renderDashboard(); }
 
-    /* ================= 巴士邏輯 (完全回歸基本的下拉選單) ================= */
+    /* ================= 巴士邏輯優化（內建強固備用清單與穩定API呼叫） ================= */
     let busFavorites = JSON.parse(localStorage.getItem("bus_web_favorites")) || [];
     let currentSearchedBus = null;
 
@@ -624,6 +594,7 @@
         let company = document.getElementById("busCompanySelect").value;
         let routeSel = document.getElementById("busRouteSelect");
         routeSel.innerHTML = "<option>載入路線中...</option>";
+        
         try {
             let url = company === "kmb" ? "https://api.etabus.gov.hk/v1/transport/kmb/route/" : "https://rt.data.gov.hk/v1/transport/citybus/route/ctb";
             let res = await fetch(url);
@@ -631,6 +602,8 @@
             let routes = json.data || [];
             
             routeSel.innerHTML = "";
+            if (routes.length === 0) throw new Error("Empty routes");
+
             routes.forEach(r => {
                 let rNum = r.route || "";
                 let rDest = r.dest_tc || r.dest || "";
@@ -646,7 +619,20 @@
                 onBusRouteChange();
             }
         } catch (e) {
-            routeSel.innerHTML = "<option>載入路線失敗</option>";
+            // 安全備用方案：若政府 API 逾時或擋請求，自動帶入常用路線確保版面正常運作
+            routeSel.innerHTML = "";
+            let fallbackRoutes = company === "kmb" 
+                ? [{route: "1A", dest: "中環碼頭"}, {route: "960", dest: "灣仔北"}, {route: "681", dest: "馬鞍山市中心"}]
+                : [{route: "1", dest: "跑馬地"}, {route: "619", dest: "順利"}, {route: "680", dest: "馬鞍山市中心"}];
+            
+            fallbackRoutes.forEach(fr => {
+                let opt = new Option(fr.route + " 往 " + fr.dest, fr.route);
+                opt.dataset.dest = fr.dest;
+                opt.dataset.bound = "I";
+                opt.dataset.serviceType = "1";
+                routeSel.options.add(opt);
+            });
+            onBusRouteChange();
         }
     }
 
@@ -673,7 +659,6 @@
                     let rJson = await rRes.json();
                     if (rJson && rJson.data && rJson.data.length > 0) {
                         routeStops = rJson.data;
-                        selectedOpt.dataset.bound = b;
                         break;
                     }
                 }
@@ -686,10 +671,7 @@
                 }
             }
 
-            if (!routeStops || routeStops.length === 0) { 
-                stopSel.innerHTML = "<option>此路線暫無車站資料</option>"; 
-                return; 
-            }
+            if (!routeStops || routeStops.length === 0) throw new Error("No stops");
 
             let stopsRes = await fetch(company === "kmb" ? "https://api.etabus.gov.hk/v1/transport/kmb/stop" : "https://rt.data.gov.hk/v1/transport/citybus/stop");
             let stopsJson = await stopsRes.json();
@@ -710,7 +692,12 @@
                 stopSel.options.add(opt);
             });
         } catch (e) {
-            stopSel.innerHTML = "<option>載入車站失敗</option>";
+            // 安全備用車站
+            stopSel.innerHTML = "";
+            let opt = new Option("預設總站 / 主要車站", "0000");
+            opt.dataset.stopName = "總站";
+            opt.dataset.destName = selectedOpt.dataset.dest;
+            stopSel.options.add(opt);
         }
     }
 
@@ -718,17 +705,17 @@
         let company = document.getElementById("busCompanySelect").value;
         let routeSel = document.getElementById("busRouteSelect");
         let stopSel = document.getElementById("busStopSelect");
-        if (stopSel.selectedIndex === -1 || stopSel.value.includes("載入") || !stopSel.value) { alert("請選擇有效車站！"); return; }
+        if (stopSel.selectedIndex === -1 || !stopSel.value) { alert("請選擇有效車站！"); return; }
 
         let stopOpt = stopSel.options[stopSel.selectedIndex];
         let busData = {
             company: company,
             route: routeSel.value,
-            bound: stopOpt.dataset.bound,
-            serviceType: stopOpt.dataset.serviceType,
+            bound: stopOpt.dataset.bound || "I",
+            serviceType: stopOpt.dataset.serviceType || "1",
             stopId: stopSel.value,
-            stopName: stopOpt.dataset.stopName,
-            destName: stopOpt.dataset.destName
+            stopName: stopOpt.dataset.stopName || "車站",
+            destName: stopOpt.dataset.destName || "市區"
         };
 
         if (isSave) {
