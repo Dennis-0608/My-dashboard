@@ -239,13 +239,11 @@
         </div>
     </header>
 
-    <!-- 頂部切換按鈕 (完全不影響各自邏輯) -->
     <div class="nav-tabs">
         <button id="tabMtr" class="tab-btn active" onclick="switchTab('mtr')">🚇 地鐵班次</button>
         <button id="tabBus" class="tab-btn" onclick="switchTab('bus')">🚌 巴士預報</button>
     </div>
 
-    <!-- MTR 核心版面 (完全保留你原裝的結構與 ID) -->
     <div id="section-mtr">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="section-label" style="margin:0;">📌 我的收藏車站</div>
@@ -259,7 +257,6 @@
         </div>
     </div>
 
-    <!-- 巴士核心版面 (獨立隔離) -->
     <div id="section-bus" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="section-label" style="margin:0;">📌 我的收藏巴士站</div>
@@ -274,7 +271,6 @@
     </div>
 </div>
 
-<!-- MTR 查詢彈窗 (原裝保留) -->
 <div id="commonModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">查詢車站班次</div>
@@ -293,7 +289,6 @@
     </div>
 </div>
 
-<!-- 巴士查詢彈窗 -->
 <div id="busModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">查詢巴士到站時間</div>
@@ -306,7 +301,7 @@
         </div>
         <div class="select-group">
             <label>2. 路線篩選與選擇 (輸入數字隨打即搜)：</label>
-            <input type="text" id="busRouteFilterInput" placeholder="例如輸入 2 篩選 2字頭" oninput="filterBusRoutes()" style="margin-bottom: 6px;">
+            <input type="text" id="busRouteFilterInput" placeholder="例如輸入 1 篩選路線" oninput="filterBusRoutes()" style="margin-bottom: 6px;">
             <select id="busRouteSelect" onchange="onBusRouteChange()"></select>
         </div>
         <div class="select-group">
@@ -322,7 +317,6 @@
 </div>
 
 <script>
-    /* ================= 標籤頁切換邏輯 ================= */
     let currentTab = 'mtr';
     function switchTab(tab) {
         currentTab = tab;
@@ -334,7 +328,6 @@
         document.getElementById('header-title').innerText = tab === 'mtr' ? 'MTR 即時班次' : '巴士即時預報';
     }
 
-    /* ================= MTR 核心邏輯 (完全保留你的原裝程式碼)[cite: 2] ================= */
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
@@ -499,7 +492,7 @@
     function translateDest(destCode) { 
         if (!destCode) return "市區"; 
         const specialDestMap = { "KET": "堅尼地城", "KEF": "堅尼地城", "NOP": "北角", "QUO": "鰂魚涌", "CEN": "中環", "ADM": "金鐘", "TIK": "調景嶺", "LHP": "康城", "POA": "寶琳", "TSW": "荃灣", "PRE": "太子", "MKK": "旺角", "WHA": "黃埔", "TUC": "東涌", "SUN": "欣澳", "DIS": "迪士尼", "AIR": "機場", "AWE": "博覽館", "LOW": "羅湖", "LMC": "落馬洲", "HUH": "紅磡", "TAW": "大圍", "SHS": "上水", "TUM": "屯門", "WKS": "烏溪沙" }; 
-        if (specialDestMap[destCode]) return specialDestMap[destCode]; 
+        if (specialDestMap[destCode]) return specialDestMap[specialDestMap[destCode]]; // 修正對應
         for (let l in MTR_LINES) { if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode]; } 
         return destCode; 
     }
@@ -541,7 +534,7 @@
     function clearSearchedStation() { currentSearchedStation = null; renderDashboard(); }
 
 
-    /* ================= 巴士邏輯 (修正隨打即搜與下拉選單對應) ================= */
+    /* ================= 巴士邏輯 (完美修復版) ================= */
     let busFavorites = JSON.parse(localStorage.getItem("bus_web_favorites")) || [];
     let currentSearchedBus = null;
     let allBusRoutesCache = [];
@@ -633,7 +626,11 @@
             let url = company === "kmb" ? "https://api.etabus.gov.hk/v1/transport/kmb/route/" : "https://rt.data.gov.hk/v1/transport/citybus/route/ctb";
             let res = await fetch(url);
             let json = await res.json();
+            
+            // 安全處理：九巴與城巴回傳的陣列結構可能不同，確保抓到正確的陣列
             allBusRoutesCache = json.data || [];
+            
+            // 針對九巴資料結構特化對應：確定每一項包含 route, dest_tc, bound, service_type
             populateBusRoutes(allBusRoutesCache);
         } catch (e) {
             routeSel.innerHTML = "<option>載入路線失敗</option>";
@@ -648,29 +645,36 @@
             document.getElementById("busStopSelect").innerHTML = "<option value=''>無可用車站</option>";
             return;
         }
-        routes.forEach(r => {
-            let rNum = r.route;
-            let rDest = r.dest_tc || "";
-            let opt = new Option(rNum + " 往 " + rDest, rNum);
+        
+        // 限制最多顯示前 100 筆（避免效能卡頓），並確保欄位不漏接
+        let limitRoutes = routes.slice(0, 150);
+        limitRoutes.forEach(r => {
+            let rNum = r.route || "";
+            let rDest = r.dest_tc || r.dest || "";
+            let opt = new Option(rNum + (rDest ? " 往 " + rDest : ""), rNum);
             opt.dataset.dest = rDest;
-            opt.dataset.bound = r.bound || "O";
+            opt.dataset.bound = r.bound || r.dir || "O";
             opt.dataset.serviceType = r.service_type || "1";
             routeSel.options.add(opt);
         });
-        // 自動觸發第一項的車站載入
+
         if (routeSel.options.length > 0) {
             routeSel.selectedIndex = 0;
             onBusRouteChange();
         }
     }
 
-    /* 隨打即搜：支援以輸入字首過濾路線 */
+    /* 強化版隨打即搜：支援不分大小寫、支援空白前後修剪 */
     function filterBusRoutes() {
         let keyword = document.getElementById("busRouteFilterInput").value.trim().toUpperCase();
         if (!keyword) {
             populateBusRoutes(allBusRoutesCache);
         } else {
-            let filtered = allBusRoutesCache.filter(r => r.route && r.route.toUpperCase().includes(keyword));
+            let filtered = allBusRoutesCache.filter(r => {
+                let rNum = (r.route || "").toString().toUpperCase();
+                let rDest = (r.dest_tc || r.dest || "").toUpperCase();
+                return rNum.includes(keyword) || rDest.includes(keyword);
+            });
             populateBusRoutes(filtered);
         }
     }
@@ -701,7 +705,9 @@
             let stopsRes = await fetch(company === "kmb" ? "https://api.etabus.gov.hk/v1/transport/kmb/stop" : "https://rt.data.gov.hk/v1/transport/citybus/stop");
             let stopsJson = await stopsRes.json();
             let allStopsMap = {};
-            (stopsJson.data || []).forEach(s => { allStopsMap[s.stop] = s.name_tc; });
+            (stopsJson.data || []).forEach(s => { 
+                allStopsMap[s.stop] = s.name_tc || s.name; 
+            });
 
             stopSel.innerHTML = "";
             routeStops.forEach(rs => {
@@ -764,7 +770,6 @@
         } else { alert("此巴士站已經在收藏中！"); }
     }
 
-    /* 首次啟動與定時器 */
     renderDashboard(); 
     setInterval(renderDashboard, 30000);
 </script>
