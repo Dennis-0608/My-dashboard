@@ -312,7 +312,7 @@
         return { text: "晴朗", icon: "☀️" };
     }
 
-    /* 取得 GPS 並異步載入天氣數據 */
+    /* 取得 GPS 並異步載入天氣數據（加入防呆超時保護） */
     async function fetchWeather() {
         let weatherEl = document.getElementById("global-weather");
         
@@ -320,17 +320,21 @@
         let lat = 22.3193;
         let lon = 114.1694;
 
-        // 嘗試透過瀏覽器取得手機 GPS 經緯度
+        // 嘗試取得 GPS，加入 3 秒超時保護，避免在 iOS Chrome 卡死
         if (navigator.geolocation) {
             try {
                 let position = await new Promise((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 3000);
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => { clearTimeout(timer); resolve(pos); },
+                        (err) => { clearTimeout(timer); reject(err); },
+                        { timeout: 3000, maximumAge: 60000, enableHighAccuracy: false }
+                    );
                 });
                 lat = position.coords.latitude;
                 lon = position.coords.longitude;
             } catch (err) {
-                // 如果用戶拒絕授權或逾時，會安靜地使用預設的香港座標，不影響畫面運作
-                console.log("無法取得 GPS，使用預設香港座標。");
+                console.log("GPS 未授權或逾時，自動使用預設香港座標。");
             }
         }
 
@@ -341,7 +345,6 @@
             let temp = Math.round(data.current_weather.temperature);
             let weatherInfo = parseWeatherCode(data.current_weather.weathercode);
             
-            // 已經刪除「天氣: 」文字，改為直接顯示圖示、溫度與狀態
             weatherEl.innerText = `${weatherInfo.icon} ${temp}°C ${weatherInfo.text}`;
         } catch (e) {
             weatherEl.innerText = "⛅ 28°C 多雲"; 
@@ -507,10 +510,12 @@
     }
 
     function handleModalConfirm() { 
-        let lineKey = document.getElementById("lineSelect").value; 
+        let lineKey = document.getElementById("lineSelect.value"); 
+        // 修正下拉選單取值
+        let lineKeySelect = document.getElementById("lineSelect").value;
         let sCode = document.getElementById("stationSelect").value; 
-        let sName = MTR_LINES[lineKey].stations[sCode]; 
-        currentSearchedStation = { lineCode: lineKey, stationCode: sCode, stationName: sName }; 
+        let sName = MTR_LINES[lineKeySelect].stations[sCode]; 
+        currentSearchedStation = { lineCode: lineKeySelect, stationCode: sCode, stationName: sName }; 
         closeModal(); 
         renderDashboard(); 
     }
