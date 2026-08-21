@@ -139,10 +139,15 @@
             color: var(--accent);
             font-weight: bold;
         }
+        .section-header-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0 6px 4px;
+        }
         .section-label {
             font-size: 13px;
             color: var(--text-sub);
-            margin: 12px 0 6px 4px;
             font-weight: bold;
         }
         @media screen and (min-width: 600px) and (orientation: landscape) {
@@ -218,12 +223,17 @@
     </header>
 
     <div id="favorites-section">
-        <div class="section-label">📌 我的收藏車站</div>
+        <div class="section-header-wrapper">
+            <div class="section-label">📌 我的收藏車站</div>
+            <button class="btn btn-primary" style="padding: 3px 8px; font-size: 12px;" onclick="openModal()">查詢車站</button>
+        </div>
         <div id="favorites-list"><p style="text-align:center; color: var(--text-sub);">載入中...</p></div>
     </div>
 
     <div id="searched-section" style="display: none;">
-        <div class="section-label">🔍 臨時查詢車站</div>
+        <div class="section-header-wrapper">
+            <div class="section-label">🔍 臨時查詢車站</div>
+        </div>
         <div id="searched-list"></div>
     </div>
 </div>
@@ -247,7 +257,6 @@
 </div>
 
 <script>
-    /* 港鐵路線與車站資料字典 */
     const MTR_LINES = {
         "TWL": { name: "荃灣線", color: "#e2231a", stations: { "CEN": "中環", "ADM": "金鐘", "TST": "尖沙咀", "JOR": "佐敦", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SSP": "深水埗", "CSW": "長沙灣", "LCK": "荔枝角", "MEF": "美孚", "LAK": "荔景", "KWF": "葵芳", "KWT": "葵興", "TWH": "大窩口", "TSW": "荃灣" } },
         "KTL": { name: "觀塘線", color: "#00ab4e", stations: { "WHA": "黃埔", "HOM": "何文田", "YMT": "油麻地", "MKK": "旺角", "PRE": "太子", "SKM": "石硤尾", "KOT": "九龍塘", "LOF": "樂富", "WTS": "黃大仙", "DIH": "鑽石山", "CHH": "彩虹", "KOB": "九龍灣", "NTK": "牛頭角", "KTW": "觀塘", "LAT": "藍田", "YAT": "油塘", "TIK": "調景嶺" } },
@@ -261,7 +270,6 @@
         "TML": { name: "屯馬線", color: "#993d00", stations: { "WKS": "烏溪沙", "MOS": "馬鞍山", "HEA": "恆安", "STW": "大水坑", "CIO": "石門", "CKT": "第一城", "STT": "沙田圍", "TKW_C": "車公廟", "TAW": "大圍", "HIK": "顯徑", "DIH": "鑽石山", "KAT": "啟德", "SUW": "宋皇臺", "TKW": "土瓜灣", "HOM": "何文田", "HUH": "紅磡", "ETS": "尖東", "AUS": "柯士甸", "NAC": "南昌", "MEF": "美孚", "TWW": "荃灣西", "KSR": "錦上路", "YUL": "元朗", "LUM": "朗屏", "SIH": "兆康", "TUM": "屯門" } }
     };
 
-    /* 轉車站對照表 */
     const TRANSFER_STATIONS = { 
         "ADM": ["TWL", "ISL", "EAL", "SIL"], 
         "NOP": ["TKL", "ISL"], 
@@ -338,7 +346,7 @@
             let card = document.createElement("div"); 
             card.className = "card"; 
             card.style.borderLeftColor = lineHexColor; 
-            card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + fav.stationName + "站 ⭐</span><div class='card-actions'><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='removeFavorite(" + i + ")'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
+            card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + fav.stationName + "站 ⭐</span><div class='card-actions'><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='removeFavorite(" + i + ")'>刪除</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
             
             container.appendChild(card); 
             loadStationSchedule(fav.lineCode, fav.stationCode, cardId); 
@@ -364,13 +372,12 @@
         let card = document.createElement("div"); 
         card.className = "card"; 
         card.style.borderLeftColor = lineHexColor; 
-        card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + station.stationName + "站</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick=\"saveSearchedToFavorites('" + station.lineCode + "', '" + station.stationCode + "', '" + station.stationName + "')\">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='clearSearchedStation()'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
+        card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + station.stationName + "站</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick=\"saveSearchedToFavorites('" + station.lineCode + "', '" + station.stationCode + "', '" + station.stationName + "')\">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='clearSearchedStation()'>刪除</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
         
         container.appendChild(card); 
         loadStationSchedule(station.lineCode, station.stationCode, cardId); 
     }
 
-    /* 修正後的即時班次載入邏輯：完整迴圈遍歷所有回傳方向清單 */
     async function loadStationSchedule(lineCode, stationCode, elementId) { 
         let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined; 
         let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode]; 
@@ -386,7 +393,6 @@
                 if (json && json.status === 1 && json.data && json.data[key]) { 
                     let sData = json.data[key]; 
                     
-                    // 動態走訪該站點回傳的所有屬性鍵值（例如 UP, DOWN 或其他路線方向代號）
                     for (let directionKey in sData) {
                         let rawList = sData[directionKey];
                         if (Array.isArray(rawList)) {
@@ -395,7 +401,6 @@
                                     let tTime = new Date(item.time.replace(/-/g, "/")); 
                                     let diffDiffSeconds = Math.floor((tTime - now) / 1000); 
                                     
-                                    // 放寬時間判定門檻，確保即將到達或剛開出的車次也能正確納入
                                     if (diffDiffSeconds >= -40) { 
                                         let diffMins = Math.floor(diffDiffSeconds / 60); 
                                         allTrains.push({ 
@@ -415,14 +420,13 @@
             } 
         } 
 
-        // 依時間先後順序排序
         allTrains.sort((a, b) => a.rawTime - b.rawTime); 
         let el = document.getElementById(elementId); 
         
         if (allTrains.length > 0) { 
             let html = ""; 
-            // 轉車站顯示最多 6 個班次，一般車站顯示最多 4 個班次
-            let displayLimit = isTransfer ? 6 : 4; 
+            // 修正：轉車站顯示 6 個，普通車站顯示 3 個
+            let displayLimit = isTransfer ? 6 : 3; 
             
             for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) { 
                 let t = allTrains[i]; 
