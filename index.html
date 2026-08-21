@@ -40,7 +40,7 @@
             align-items: center;
             gap: 8px;
         }
-        .custom-select {
+        .custom-select, .custom-input {
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
@@ -52,10 +52,18 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .custom-select {
             background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
             background-repeat: no-repeat;
             background-position: right 10px center;
             background-size: 12px auto;
+        }
+        .custom-input {
+            cursor: text;
+            margin-bottom: 8px;
         }
         .header-right {
             text-align: right;
@@ -109,15 +117,14 @@
             gap: 5px;
         }
         
-        /* 模仿圖片的高效排版 */
-        .bus-row {
+        .bus-row, .mtr-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 8px 0;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .bus-row:last-child { border-bottom: none; }
+        .bus-row:last-child, .mtr-row:last-child { border-bottom: none; }
         
         .bus-left {
             display: flex;
@@ -144,7 +151,7 @@
             color: var(--text-sub);
         }
         
-        .bus-right {
+        .bus-right, .mtr-right {
             text-align: right;
             min-width: 70px;
         }
@@ -210,16 +217,17 @@
         </div>
     </div>
 
-    <!-- MTR 介面區塊 (保留作為後備切換) -->
+    <!-- MTR 介面區塊 -->
     <div id="mtr-container" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div class="section-label" style="margin:0;">📌 我的收藏港鐵站</div>
+            <div class="section-label" style="margin:0;">📌 我的收藏港鐵站 (最多3個)</div>
             <button class="btn btn-primary" onclick="openMtrModal()">➕ 新增查詢</button>
         </div>
-        <div id="favorites-list"></div>
-        <div id="searched-section" style="display: none; margin-top: 20px;">
-            <div class="section-label">🔍 臨時查詢車站</div>
-            <div id="searched-list"></div>
+        <div id="mtr-favorites-list"><p style="text-align:center; color: var(--text-sub); padding: 20px;">載入中...</p></div>
+        
+        <div id="mtr-searched-section" style="display: none; margin-top: 20px;">
+            <div class="section-label">🔍 臨時查詢港鐵站</div>
+            <div id="mtr-searched-list"></div>
         </div>
     </div>
 </div>
@@ -236,7 +244,8 @@
             </select>
         </div>
         <div class="select-group">
-            <label>2. 選擇巴士路線：</label>
+            <label>2. 篩選或選擇巴士路線：</label>
+            <input type="text" id="busRouteFilterInput" class="custom-input" placeholder="輸入路線號碼篩選 (例如: 268C, 606)" oninput="filterBusRoutes()">
             <select id="busRouteSelect" class="custom-select modal-select" onchange="onRouteChange()"></select>
         </div>
         <div class="select-group">
@@ -251,20 +260,21 @@
     </div>
 </div>
 
-<!-- MTR 查詢彈窗 -->
+<!-- MTR 查詢與收藏彈窗 -->
 <div id="mtrModal" class="modal">
     <div class="modal-content">
-        <div class="modal-title">查詢港鐵車站</div>
+        <div class="modal-title">查詢港鐵即時班次</div>
         <div class="select-group">
-            <label>選擇路線：</label>
-            <select id="lineSelect" class="custom-select modal-select" onchange="updateMtrStationOptions()"></select>
+            <label>選擇港鐵路線：</label>
+            <select id="mtrLineSelect" class="custom-select modal-select" onchange="updateMtrStationOptions()"></select>
         </div>
         <div class="select-group">
             <label>選擇車站：</label>
-            <select id="stationSelect" class="custom-select modal-select"></select>
+            <select id="mtrStationSelect" class="custom-select modal-select"></select>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="btn btn-success" style="flex:1; padding:10px;" onclick="handleMtrModalConfirm()">確認查詢</button>
+            <button class="btn btn-success" style="flex:1; padding:10px;" onclick="confirmMtrQuery(true)">加入收藏</button>
+            <button class="btn btn-primary" style="flex:1; padding:10px;" onclick="confirmMtrQuery(false)">僅臨時查詢</button>
             <button class="btn" style="background-color: #3a3a3c; padding:10px;" onclick="closeMtrModal()">取消</button>
         </div>
     </div>
@@ -275,10 +285,10 @@
     let currentMode = "bus";
     let currentSearchedBus = null;
     let currentSearchedMtr = null;
+    let allRoutesCache = []; // 快取完整巴士路線供即時篩選
 
-    // 預設收藏的巴士站
     let busFavorites = JSON.parse(localStorage.getItem("bus_web_favorites")) || [
-        { company: "kmb", route: "268C", routeId: "268C", bound: "O", serviceType: "1", stopId: "KT336", stopName: "牛頭角站", destName: "觀塘碼頭" }
+        { company: "kmb", route: "268C", bound: "O", serviceType: "1", stopId: "KT336", stopName: "牛頭角站", destName: "觀塘碼頭" }
     ];
 
     let mtrFavorites = JSON.parse(localStorage.getItem("mtr_web_favorites")) || [
@@ -296,7 +306,7 @@
     function saveBusFavorites() { localStorage.setItem("bus_web_favorites", JSON.stringify(busFavorites)); }
     function saveMtrFavorites() { localStorage.setItem("mtr_web_favorites", JSON.stringify(mtrFavorites)); }
 
-    /* ================= 頁面初始化與時間/天氣 ================= */
+    /* ================= 初始化與共用功能 ================= */
     function renderDashboard() {
         let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById("global-update-time").innerText = "更新時間: " + nowStr;
@@ -330,32 +340,21 @@
         renderDashboard();
     }
 
-    /* ================= 巴士功能區塊 ================= */
+    /* ================= 巴士邏輯區塊 ================= */
     async function renderBusFavorites() {
         let container = document.getElementById("bus-favorites-list");
         container.innerHTML = "";
         if (busFavorites.length === 0) {
-            container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>尚未收藏任何巴士站，請點擊上方按鈕新增。</p>";
+            container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>尚未收藏任何巴士站。</p>";
             return;
         }
-
         for (let i = 0; i < busFavorites.length; i++) {
-            let fav = busFavorites.get ? busFavorites[i] : busFavorites[i];
             let cardId = `bus-fav-${i}`;
             let card = document.createElement("div");
             card.className = "card";
-            card.innerHTML = `
-                <div class='card-header'>
-                    <span class='station-title'>🚏 收藏站 #${i+1}</span>
-                    <div class='card-actions'>
-                        <button class='btn btn-danger' style='padding: 3px 8px; font-size: 11px;' onclick='removeBusFavorite(${i})'>刪除</button>
-                        <button class='btn btn-primary' style='padding: 3px 8px; font-size: 11px;' onclick='openBusModal()'>查詢</button>
-                    </div>
-                </div>
-                <div id='${cardId}'>載入班次中...</div>
-            `;
+            card.innerHTML = `<div class='card-header'><span class='station-title'>🚏 收藏站 #${i+1}</span><div class='card-actions'><button class='btn btn-danger' style='padding: 3px 8px; font-size: 11px;' onclick='removeBusFavorite(${i})'>刪除</button><button class='btn btn-primary' style='padding: 3px 8px; font-size: 11px;' onclick='openBusModal()'>查詢</button></div></div><div id='${cardId}'>載入班次中...</div>`;
             container.appendChild(card);
-            loadBusEta(fav, cardId);
+            loadBusEta(busFavorites[i], cardId);
         }
     }
 
@@ -364,21 +363,11 @@
         let container = document.getElementById("bus-searched-list");
         container.innerHTML = "";
         if (!currentSearchedBus) { section.style.display = "none"; return; }
-
         section.style.display = "block";
         let cardId = "bus-search-0";
         let card = document.createElement("div");
         card.className = "card";
-        card.innerHTML = `
-            <div class='card-header'>
-                <span class='station-title'>🔍 臨時查詢</span>
-                <div class='card-actions'>
-                    <button class='btn btn-success' style='padding: 3px 8px; font-size: 11px;' onclick='saveSearchedToBusFavorites()'>收藏</button>
-                    <button class='btn btn-danger' style='padding: 3px 8px; font-size: 11px;' onclick='clearBusSearched()'>清除</button>
-                </div>
-            </div>
-            <div id='${cardId}'>載入班次中...</div>
-        `;
+        card.innerHTML = `<div class='card-header'><span class='station-title'>🔍 臨時查詢</span><div class='card-actions'><button class='btn btn-success' style='padding: 3px 8px; font-size: 11px;' onclick='saveSearchedToBusFavorites()'>收藏</button><button class='btn btn-danger' style='padding: 3px 8px; font-size: 11px;' onclick='clearBusSearched()'>清除</button></div></div><div id='${cardId}'>載入班次中...</div>`;
         container.appendChild(card);
         loadBusEta(currentSearchedBus, cardId);
     }
@@ -386,86 +375,46 @@
     async function loadBusEta(item, elementId) {
         let el = document.getElementById(elementId);
         try {
-            let url = "";
-            if (item.company === "kmb") {
-                url = `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${item.stopId}`;
-            } else {
-                url = `https://rt.data.gov.hk/v1/transport/citybus/eta/ctb/${item.stopId}`;
-            }
+            let url = item.company === "kmb" 
+                ? `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${item.stopId}`
+                : `https://rt.data.gov.hk/v1/transport/citybus/eta/ctb/${item.stopId}`;
 
             let res = await fetch(url);
             let json = await res.json();
             let etas = item.company === "kmb" ? json.data : (json.data || []);
 
-            // 過濾出對應路線與方向的班次
             let filteredEtas = etas.filter(e => e.route === item.route && (!item.bound || e.dir === item.bound || item.company === 'ctb'));
-            
-            // 按照預報時間排序並取前 2 個
             filteredEtas.sort((a, b) => new Date(a.eta || 0) - new Date(b.eta || 0));
             let topEtas = filteredEtas.slice(0, 2);
-
             let now = new Date();
-            let timeHtml = "";
 
             if (topEtas.length === 0) {
-                timeHtml = `<div class='bus-row'>
-                    <div class='bus-left'>
-                        <div class='bus-route-num' style='color:${item.company==='kmb'?'#e61c24':'#0080ff'}'>${item.route}</div>
-                        <div class='bus-info-group'>
-                            <div class='bus-dest'>往 ${item.destName || '指定方向'}</div>
-                            <div class='bus-stop-name'>${item.stopName} (${item.stopId})</div>
-                        </div>
-                    </div>
-                    <div class='bus-right'><span class='time-none'>暫無班次</span></div>
-                </div>`;
+                el.innerHTML = `<div class='bus-row'><div class='bus-left'><div class='bus-route-num' style='color:${item.company==='kmb'?'#e61c24':'#0080ff'}'>${item.route}</div><div class='bus-info-group'><div class='bus-dest'>往 ${item.destName || ''}</div><div class='bus-stop-name'>${item.stopName} (${item.stopId})</div></div></div><div class='bus-right'><span class='time-none'>暫無班次</span></div></div>`;
             } else {
-                // 組裝 2 個班次的顯示時間字串
                 let timesText = topEtas.map(e => {
                     if (!e.eta) return "-";
                     let diff = Math.round((new Date(e.eta) - now) / 60000);
                     return diff <= 0 ? "即將到達" : `${diff}`;
                 });
 
-                let primaryTime = timesText[0];
-                let isSoon = primaryTime === "即將到達";
-                
-                timeHtml = `
-                <div class='bus-row'>
-                    <div class='bus-left'>
-                        <div class='bus-route-num' style='color:${item.company==='kmb'?'#e61c24':'#0080ff'}'>${item.route}</div>
-                        <div class='bus-info-group'>
-                            <div class='bus-dest'>往 ${topEtas[0].dest_tc || item.destName}</div>
-                            <div class='bus-stop-name'>${item.stopName} (${item.stopId})</div>
-                        </div>
-                    </div>
-                    <div class='bus-right'>
-                        <span class='${isSoon ? "time-soon" : "time-normal"}'>${primaryTime}</span>
-                        <span class='time-unit'>${isSoon ? "" : "分鐘"}</span>
-                    </div>
-                </div>`;
+                let isSoon1 = timesText[0] === "即將到達";
+                let timeHtml = `<div class='bus-row'><div class='bus-left'><div class='bus-route-num' style='color:${item.company==='kmb'?'#e61c24':'#0080ff'}'>${item.route}</div><div class='bus-info-group'><div class='bus-dest'>往 ${topEtas[0].dest_tc || item.destName}</div><div class='bus-stop-name'>${item.stopName} (${item.stopId})</div></div></div><div class='bus-right'><span class='${isSoon1 ? "time-soon" : "time-normal"}'>${timesText[0]}</span><span class='time-unit'>${isSoon1 ? "" : "分鐘"}</span></div></div>`;
 
                 if (topEtas.length > 1) {
-                    let secondTime = timesText[1];
-                    let isSoon2 = secondTime === "即將到達";
-                    timeHtml += `
-                    <div class='bus-row' style='border-top:1px dashed rgba(255,255,255,0.1); padding-top:6px;'>
-                        <div class='bus-left'><div style='font-size:12px; color:var(--text-sub); padding-left:2px;'>後續班次</div></div>
-                        <div class='bus-right'>
-                            <span style='font-size:14px; font-weight:bold; color:var(--text-main);'>${secondTime}</span>
-                            <span class='time-unit'>${isSoon2 ? "" : "分鐘"}</span>
-                        </div>
-                    </div>`;
+                    let isSoon2 = timesText[1] === "即將到達";
+                    timeHtml += `<div class='bus-row' style='border-top:1px dashed rgba(255,255,255,0.1); padding-top:6px;'><div class='bus-left'><div style='font-size:12px; color:var(--text-sub);'>後續班次</div></div><div class='bus-right'><span style='font-size:14px; font-weight:bold;'>${timesText[1]}</span><span class='time-unit'>${isSoon2 ? "" : "分鐘"}</span></div></div>`;
                 }
+                el.innerHTML = timeHtml;
             }
-            el.innerHTML = timeHtml;
         } catch (e) {
             el.innerHTML = "<div style='color:var(--danger); font-size:13px;'>無法載入到站預報</div>";
         }
     }
 
-    /* ================= 巴士彈窗互動邏輯 ================= */
+    /* ================= 巴士彈窗與即時篩選邏輯 ================= */
     async function openBusModal() {
         document.getElementById("busModal").style.display = "flex";
+        document.getElementById("busRouteFilterInput").value = "";
         await onCompanyChange();
     }
     function closeBusModal() { document.getElementById("busModal").style.display = "none"; }
@@ -474,37 +423,53 @@
         let company = document.getElementById("busCompanySelect").value;
         let routeSel = document.getElementById("busRouteSelect");
         routeSel.innerHTML = "<option>載入路線中...</option>";
+        document.getElementById("busRouteFilterInput").value = "";
 
         try {
             let url = company === "kmb" ? "https://data.etabus.gov.hk/v1/transport/kmb/route/" : "https://rt.data.gov.hk/v1/transport/citybus/route/ctb";
             let res = await fetch(url);
             let json = await res.json();
-            let routes = json.data;
-
-            routeSel.innerHTML = "";
-            routes.forEach(r => {
-                let rNum = r.route;
-                let rDest = r.dest_tc || "";
-                let opt = new Option(`${rNum} 往 ${rDest}`, rNum);
-                opt.dataset.dest = rDest;
-                opt.dataset.bound = r.bound || "O";
-                opt.dataset.serviceType = r.service_type || "1";
-                routeSel.options.add(opt);
-            });
+            allRoutesCache = json.data;
+            populateRouteSelect(allRoutesCache);
             await onRouteChange();
         } catch (e) {
             routeSel.innerHTML = "<option>載入路線失敗</option>";
         }
     }
 
+    function populateRouteSelect(routes) {
+        let routeSel = document.getElementById("busRouteSelect");
+        routeSel.innerHTML = "";
+        routes.forEach(r => {
+            let rNum = r.route;
+            let rDest = r.dest_tc || "";
+            let opt = new Option(`${rNum} 往 ${rDest}`, rNum);
+            opt.dataset.dest = rDest;
+            opt.dataset.bound = r.bound || "O";
+            opt.dataset.serviceType = r.service_type || "1";
+            routeSel.options.add(opt);
+        });
+    }
+
+    function filterBusRoutes() {
+        let keyword = document.getElementById("busRouteFilterInput").value.trim().toUpperCase();
+        if (!keyword) {
+            populateRouteSelect(allRoutesCache);
+        } else {
+            let filtered = allRoutesCache.filter(r => r.route.toUpperCase().includes(keyword) || (r.dest_tc && r.dest_tc.includes(keyword)));
+            populateRouteSelect(filtered);
+        }
+        onRouteChange();
+    }
+
     async function onRouteChange() {
         let company = document.getElementById("busCompanySelect").value;
         let routeSel = document.getElementById("busRouteSelect");
-        if (routeSel.selectedIndex === -1) return;
+        let stopSel = document.getElementById("busStopSelect");
+        if (routeSel.selectedIndex === -1) { stopSel.innerHTML = "<option>無可用車站</option>"; return; }
+
         let selectedOpt = routeSel.options[routeSel.selectedIndex];
         let route = selectedOpt.value;
-
-        let stopSel = document.getElementById("busStopSelect");
         stopSel.innerHTML = "<option>載入車站中...</option>";
 
         try {
@@ -515,8 +480,8 @@
             let res = await fetch(url);
             let json = await res.json();
             let routeStops = json.data;
+            if (!routeStops || routeStops.length === 0) { stopSel.innerHTML = "<option>此方向暫無車站資料</option>"; return; }
 
-            // 取得所有站點詳細名稱
             let stopsRes = await fetch(company === "kmb" ? "https://data.etabus.gov.hk/v1/transport/kmb/stop" : "https://rt.data.gov.hk/v1/transport/citybus/stop");
             let stopsJson = await stopsRes.json();
             let allStopsMap = {};
@@ -542,7 +507,7 @@
         let company = document.getElementById("busCompanySelect").value;
         let routeSel = document.getElementById("busRouteSelect");
         let stopSel = document.getElementById("busStopSelect");
-        if (stopSel.selectedIndex === -1) { alert("請選擇有效車站！"); return; }
+        if (stopSel.selectedIndex === -1 || stopSel.value.includes("載入")) { alert("請選擇有效車站！"); return; }
 
         let stopOpt = stopSel.options[stopSel.selectedIndex];
         let busData = {
@@ -566,7 +531,6 @@
         } else {
             currentSearchedBus = busData;
         }
-
         closeBusModal();
         renderDashboard();
     }
@@ -582,43 +546,153 @@
         renderDashboard();
     }
 
-    /* ================= MTR 備用支援邏輯 ================= */
+    function saveSearchedToBusFavorites() {
+        if (!currentSearchedBus) return;
+        if (busFavorites.length >= 3) { alert("收藏上限為 3 個巴士站！"); return; }
+        if (!busFavorites.some(f => f.stopId === currentSearchedBus.stopId && f.route === currentSearchedBus.route)) {
+            busFavorites.push(currentSearchedBus);
+            saveBusFavorites();
+            currentSearchedBus = null;
+            renderDashboard();
+        } else {
+            alert("此巴士站已經在收藏中！");
+        }
+    }
+
+    /* ================= MTR 完整即時班次邏輯 ================= */
     function openMtrModal() {
-        let lineSel = document.getElementById("lineSelect");
+        let lineSel = document.getElementById("mtrLineSelect");
         lineSel.innerHTML = "";
         for (let l in MTR_LINES) { lineSel.innerHTML += `<option value='${l}'>${MTR_LINES[l].name}</option>`; }
         updateMtrStationOptions();
         document.getElementById("mtrModal").style.display = "flex";
     }
     function closeMtrModal() { document.getElementById("mtrModal").style.display = "none"; }
+
     function updateMtrStationOptions() {
-        let line = document.getElementById("lineSelect").value;
-        let staSel = document.getElementById("stationSelect");
+        let line = document.getElementById("mtrLineSelect").value;
+        let staSel = document.getElementById("mtrStationSelect");
         staSel.innerHTML = "";
         let stations = MTR_LINES[line].stations;
         for (let s in stations) { staSel.options.add(new Option(stations[s], s)); }
     }
-    function handleMtrModalConfirm() {
-        let line = document.getElementById("lineSelect").value;
-        let sCode = document.getElementById("stationSelect").value;
+
+    function confirmMtrQuery(isSave) {
+        let line = document.getElementById("mtrLineSelect").value;
+        let sCode = document.getElementById("mtrStationSelect").value;
         let sName = MTR_LINES[line].stations[sCode];
-        if (mtrFavorites.length >= 3) { alert("港鐵收藏上限為 3 個！"); return; }
-        mtrFavorites.push({ lineCode: line, stationCode: sCode, stationName: sName });
-        saveMtrFavorites();
+        let mtrData = { lineCode: line, stationCode: sCode, stationName: sName };
+
+        if (isSave) {
+            if (mtrFavorites.length >= 3) { alert("港鐵收藏上限為 3 個！"); return; }
+            if (!mtrFavorites.some(f => f.stationCode === sCode && f.lineCode === line)) {
+                mtrFavorites.push(mtrData);
+                saveMtrFavorites();
+            } else {
+                alert("此港鐵站已經在收藏中！");
+            }
+        } else {
+            currentSearchedMtr = mtrData;
+        }
         closeMtrModal();
         renderDashboard();
     }
-    function renderMtrFavorites() {
-        let container = document.getElementById("favorites-list");
-        container.innerHTML = mtrFavorites.map((f, i) => `
-            <div class='card' style='border-left-color:${MTR_LINES[f.lineCode]?.color || '#555'}'>
-                <div class='card-header'><span class='station-title'>🚝 ${f.stationName}站</span><button class='btn btn-danger' style='padding:3px 8px; font-size:11px;' onclick='mtrFavorites.splice(${i},1); saveMtrFavorites(); renderDashboard();'>刪除</button></div>
-                <div>港鐵站點運作正常</div>
-            </div>`).join('');
-    }
-    function renderMtrSearched() {}
 
-    /* 首次啟動與定時更新 */
+    async function renderMtrFavorites() {
+        let container = document.getElementById("mtr-favorites-list");
+        container.innerHTML = "";
+        if (mtrFavorites.length === 0) {
+            container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>尚未收藏任何港鐵站。</p>";
+            return;
+        }
+        for (let i = 0; i < mtrFavorites.length; i++) {
+            let cardId = `mtr-fav-${i}`;
+            let card = document.createElement("div");
+            card.className = "card";
+            card.style.borderLeftColor = MTR_LINES[mtrFavorites[i].lineCode]?.color || '#555';
+            card.innerHTML = `<div class='card-header'><span class='station-title'>🚝 ${mtrFavorites[i].stationName}站</span><div class='card-actions'><button class='btn btn-danger' style='padding: 3px 8px; font-size: 11px;' onclick='removeMtrFavorite(${i})'>刪除</button><button class='btn btn-primary' style='padding: 3px 8px; font-size: 11px;' onclick='openMtrModal()'>查詢</button></div></div><div id='${cardId}'>載入港鐵班次中...</div>`;
+            container.appendChild(card);
+            loadMtrEta(mtrFavorites[i], cardId);
+        }
+    }
+
+    async function renderMtrSearched() {
+        let section = document.getElementById("mtr-searched-section");
+        let container = document.getElementById("mtr-searched-list");
+        container.innerHTML = "";
+        if (!currentSearchedMtr) { section.style.display = "none"; return; }
+        section.style.display = "block";
+        let cardId = "mtr-search-0";
+        let card = document.createElement("div");
+        card.className = "card";
+        card.style.borderLeftColor = MTR_LINES[currentSearchedMtr.lineCode]?.color || '#555';
+        card.innerHTML = `<div class='card-header'><span class='station-title'>🔍 臨時查詢 (${currentSearchedMtr.stationName}站)</span><div class='card-actions'><button class='btn btn-success' style='padding: 3px 8px; font-size: 11px;' onclick='saveSearchedToMtrFavorites()'>收藏</button><button class='btn btn-danger' style='padding: 3px 8px; font-size: 11px;' onclick='clearMtrSearched()'>清除</button></div></div><div id='${cardId}'>載入港鐵班次中...</div>`;
+        container.appendChild(card);
+        loadMtrEta(currentSearchedMtr, cardId);
+    }
+
+    async function loadMtrEta(item, elementId) {
+        let el = document.getElementById(elementId);
+        try {
+            let res = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${item.lineCode}&sta=${item.stationCode}`);
+            let json = await res.json();
+            if (json.status !== 1 || !json.data || !json.data[`${item.lineCode}-${item.stationCode}`]) {
+                el.innerHTML = "<div style='color:var(--text-sub);'>暫無班次資料</div>";
+                return;
+            }
+
+            let stationData = json.data[`${item.lineCode}-${item.stationCode}`];
+            let directions = ["UP", "DOWN"];
+            let html = "";
+
+            directions.forEach(dir => {
+                let dirData = stationData[dir];
+                if (dirData && dirData.length > 0) {
+                    let destName = dirData[0].dest || "終點站";
+                    let trains = dirData.slice(0, 2).map(t => {
+                        let timeStr = t.time;
+                        let minMatch = timeStr.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+                        if (minMatch) {
+                            let trainDate = new Date(t.time.replace(/-/g, "/"));
+                            let diff = Math.round((trainDate - new Date()) / 60000);
+                            return diff <= 0 ? "即將到達" : `${diff} 分鐘`;
+                        }
+                        return timeStr;
+                    });
+
+                    html += `<div class='mtr-row'>
+                        <div class='bus-left'><div class='bus-info-group'><div class='bus-dest'>往 ${destName}</div><div class='bus-stop-name'>${item.stationName}站 (${dir === 'UP' ? '上行' : '下行'})</div></div></div>
+                        <div class='bus-right'><span class='time-normal'>${trains[0] || '-'}</span>${trains[1] ? `<span style='font-size:12px; color:var(--text-sub); display:block;'>後續: ${trains[1]}</span>` : ''}</div>
+                    </div>`;
+                }
+            });
+
+            el.innerHTML = html || "<div style='color:var(--text-sub);'>目前方向暫無列車</div>";
+        } catch (e) {
+            el.innerHTML = "<div style='color:var(--danger); font-size:13px;'>無法載入港鐵預報</div>";
+        }
+    }
+
+    function removeMtrFavorite(index) {
+        mtrFavorites.splice(index, 1);
+        saveMtrFavorites();
+        renderDashboard();
+    }
+    function clearMtrSearched() { currentSearchedMtr = null; renderDashboard(); }
+    function saveSearchedToMtrFavorites() {
+        if (!currentSearchedMtr) return;
+        if (mtrFavorites.length >= 3) { alert("港鐵收藏上限為 3 個！"); return; }
+        if (!mtrFavorites.some(f => f.stationCode === currentSearchedMtr.stationCode && f.lineCode === currentSearchedMtr.lineCode)) {
+            mtrFavorites.push(currentSearchedMtr);
+            saveMtrFavorites();
+            currentSearchedMtr = null;
+            renderDashboard();
+        } else {
+            alert("此港鐵站已經在收藏中！");
+        }
+    }
+
+    /* 啟動 */
     renderDashboard();
     setInterval(renderDashboard, 30000);
 </script>
