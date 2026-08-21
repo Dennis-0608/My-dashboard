@@ -259,7 +259,7 @@
         </div>
     </div>
 
-    <!-- 巴士核心版面 (獨立隔離，隨打即搜與正確載入上車站) -->
+    <!-- 巴士核心版面 (獨立隔離) -->
     <div id="section-bus" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="section-label" style="margin:0;">📌 我的收藏巴士站</div>
@@ -293,7 +293,7 @@
     </div>
 </div>
 
-<!-- 巴士查詢彈窗 (具備隨打即搜與修復後的上車站抓取) -->
+<!-- 巴士查詢彈窗 -->
 <div id="busModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">查詢巴士到站時間</div>
@@ -541,7 +541,7 @@
     function clearSearchedStation() { currentSearchedStation = null; renderDashboard(); }
 
 
-    /* ================= 巴士邏輯 (完全獨立隔離模組) ================= */
+    /* ================= 巴士邏輯 (修正隨打即搜與下拉選單對應) ================= */
     let busFavorites = JSON.parse(localStorage.getItem("bus_web_favorites")) || [];
     let currentSearchedBus = null;
     let allBusRoutesCache = [];
@@ -635,7 +635,6 @@
             let json = await res.json();
             allBusRoutesCache = json.data || [];
             populateBusRoutes(allBusRoutesCache);
-            await onBusRouteChange();
         } catch (e) {
             routeSel.innerHTML = "<option>載入路線失敗</option>";
         }
@@ -644,6 +643,11 @@
     function populateBusRoutes(routes) {
         let routeSel = document.getElementById("busRouteSelect");
         routeSel.innerHTML = "";
+        if (!routes || routes.length === 0) {
+            routeSel.innerHTML = "<option value=''>沒有符合的路線</option>";
+            document.getElementById("busStopSelect").innerHTML = "<option value=''>無可用車站</option>";
+            return;
+        }
         routes.forEach(r => {
             let rNum = r.route;
             let rDest = r.dest_tc || "";
@@ -653,25 +657,32 @@
             opt.dataset.serviceType = r.service_type || "1";
             routeSel.options.add(opt);
         });
+        // 自動觸發第一項的車站載入
+        if (routeSel.options.length > 0) {
+            routeSel.selectedIndex = 0;
+            onBusRouteChange();
+        }
     }
 
-    /* 隨打即搜：遞進式字首過濾 */
+    /* 隨打即搜：支援以輸入字首過濾路線 */
     function filterBusRoutes() {
         let keyword = document.getElementById("busRouteFilterInput").value.trim().toUpperCase();
         if (!keyword) {
             populateBusRoutes(allBusRoutesCache);
         } else {
-            let filtered = allBusRoutesCache.filter(r => r.route.toUpperCase().startsWith(keyword));
+            let filtered = allBusRoutesCache.filter(r => r.route && r.route.toUpperCase().includes(keyword));
             populateBusRoutes(filtered);
         }
-        onBusRouteChange();
     }
 
     async function onBusRouteChange() {
         let company = document.getElementById("busCompanySelect").value;
         let routeSel = document.getElementById("busRouteSelect");
         let stopSel = document.getElementById("busStopSelect");
-        if (routeSel.selectedIndex === -1) { stopSel.innerHTML = "<option>無可用車站</option>"; return; }
+        if (routeSel.selectedIndex === -1 || !routeSel.value) { 
+            stopSel.innerHTML = "<option>無可用車站</option>"; 
+            return; 
+        }
 
         let selectedOpt = routeSel.options[routeSel.selectedIndex];
         let route = selectedOpt.value;
@@ -712,7 +723,7 @@
         let company = document.getElementById("busCompanySelect").value;
         let routeSel = document.getElementById("busRouteSelect");
         let stopSel = document.getElementById("busStopSelect");
-        if (stopSel.selectedIndex === -1 || stopSel.value.includes("載入")) { alert("請選擇有效車站！"); return; }
+        if (stopSel.selectedIndex === -1 || stopSel.value.includes("載入") || !stopSel.value) { alert("請選擇有效車站！"); return; }
 
         let stopOpt = stopSel.options[stopSel.selectedIndex];
         let busData = {
