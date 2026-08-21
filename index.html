@@ -492,7 +492,7 @@
     function translateDest(destCode) { 
         if (!destCode) return "市區"; 
         const specialDestMap = { "KET": "堅尼地城", "KEF": "堅尼地城", "NOP": "北角", "QUO": "鰂魚涌", "CEN": "中環", "ADM": "金鐘", "TIK": "調景嶺", "LHP": "康城", "POA": "寶琳", "TSW": "荃灣", "PRE": "太子", "MKK": "旺角", "WHA": "黃埔", "TUC": "東涌", "SUN": "欣澳", "DIS": "迪士尼", "AIR": "機場", "AWE": "博覽館", "LOW": "羅湖", "LMC": "落馬洲", "HUH": "紅磡", "TAW": "大圍", "SHS": "上水", "TUM": "屯門", "WKS": "烏溪沙" }; 
-        if (specialDestMap[destCode]) return specialDestMap[specialDestMap[destCode]]; // 修正對應
+        if (specialDestMap[destCode]) return specialDestMap[destCode]; 
         for (let l in MTR_LINES) { if (MTR_LINES[l].stations[destCode]) return MTR_LINES[l].stations[destCode]; } 
         return destCode; 
     }
@@ -533,8 +533,7 @@
     function removeFavorite(index) { let favs = getFavorites(); favs.splice(index, 1); saveFavorites(favs); renderDashboard(); }
     function clearSearchedStation() { currentSearchedStation = null; renderDashboard(); }
 
-
-    /* ================= 巴士邏輯 (完美修復版) ================= */
+    /* ================= 巴士邏輯 (已修正與加強容錯) ================= */
     let busFavorites = JSON.parse(localStorage.getItem("bus_web_favorites")) || [];
     let currentSearchedBus = null;
     let allBusRoutesCache = [];
@@ -584,16 +583,18 @@
 
             let res = await fetch(url);
             let json = await res.json();
-            let etas = item.company === "kmb" ? json.data : (json.data || []);
-            let filteredEtas = etas.filter(e => e.route === item.route && (!item.bound || e.dir === item.bound || item.company === 'ctb'));
+            let etas = item.company === "kmb" ? (json.data || []) : (json.data || []);
+            
+            // 過濾符合該路線的預報
+            let filteredEtas = etas.filter(e => e.route === item.route);
             filteredEtas.sort((a, b) => new Date(a.eta || 0) - new Date(b.eta || 0));
             let topEtas = filteredEtas.slice(0, 2);
             let now = new Date();
 
             if (topEtas.length === 0) {
-                el.innerHTML = "<div style='font-size:13px; color: var(--text-sub);'>站名: " + item.stopName + "<br>目前尚無即時班次</div>";
+                el.innerHTML = "<div style='font-size:13px; color: var(--text-sub);'>站名: " + (item.stopName || "指定車站") + "<br>目前尚無即時班次</div>";
             } else {
-                let html = "<div style='font-size:12px; color:var(--text-sub); margin-bottom:6px;'>站名: " + item.stopName + "</div>";
+                let html = "<div style='font-size:12px; color:var(--text-sub); margin-bottom:6px;'>站名: " + (item.stopName || "指定車站") + "</div>";
                 for (let e of topEtas) {
                     let timeStr = "-";
                     let timeClass = "time-normal";
@@ -602,7 +603,8 @@
                         if (diffMins <= 0) { timeStr = "即將到達"; timeClass = "time-soon"; }
                         else { timeStr = diffMins + " 分鐘"; }
                     }
-                    html += "<div class='bus-row'><div class='bus-row-left'><span class='line-badge' style='background-color: " + (item.company === 'kmb' ? '#e61c24' : '#0080ff') + "'>" + item.route + "</span></div><div class='bus-row-center " + timeClass + "'>" + timeStr + "</div><div class='bus-row-right'>➔ " + (e.dest_tc || item.destName) + "</div></div>";
+                    let destText = e.dest_tc || e.dest_en || item.destName;
+                    html += "<div class='bus-row'><div class='bus-row-left'><span class='line-badge' style='background-color: " + (item.company === 'kmb' ? '#e61c24' : '#0080ff') + "'>" + item.route + "</span></div><div class='bus-row-center " + timeClass + "'>" + timeStr + "</div><div class='bus-row-right'>➔ " + destText + "</div></div>";
                 }
                 el.innerHTML = html;
             }
@@ -626,11 +628,7 @@
             let url = company === "kmb" ? "https://api.etabus.gov.hk/v1/transport/kmb/route/" : "https://rt.data.gov.hk/v1/transport/citybus/route/ctb";
             let res = await fetch(url);
             let json = await res.json();
-            
-            // 安全處理：九巴與城巴回傳的陣列結構可能不同，確保抓到正確的陣列
             allBusRoutesCache = json.data || [];
-            
-            // 針對九巴資料結構特化對應：確定每一項包含 route, dest_tc, bound, service_type
             populateBusRoutes(allBusRoutesCache);
         } catch (e) {
             routeSel.innerHTML = "<option>載入路線失敗</option>";
@@ -646,14 +644,13 @@
             return;
         }
         
-        // 限制最多顯示前 100 筆（避免效能卡頓），並確保欄位不漏接
         let limitRoutes = routes.slice(0, 150);
         limitRoutes.forEach(r => {
             let rNum = r.route || "";
             let rDest = r.dest_tc || r.dest || "";
             let opt = new Option(rNum + (rDest ? " 往 " + rDest : ""), rNum);
             opt.dataset.dest = rDest;
-            opt.dataset.bound = r.bound || r.dir || "O";
+            opt.dataset.bound = r.bound || r.dir || "I";
             opt.dataset.serviceType = r.service_type || "1";
             routeSel.options.add(opt);
         });
@@ -664,7 +661,6 @@
         }
     }
 
-    /* 強化版隨打即搜：支援不分大小寫、支援空白前後修剪 */
     function filterBusRoutes() {
         let keyword = document.getElementById("busRouteFilterInput").value.trim().toUpperCase();
         if (!keyword) {
@@ -693,26 +689,46 @@
         stopSel.innerHTML = "<option>載入車站中...</option>";
 
         try {
-            let url = company === "kmb" 
-                ? `https://api.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${selectedOpt.dataset.bound}/${selectedOpt.dataset.serviceType}`
-                : `https://rt.data.gov.hk/v1/transport/citybus/route-stop/ctb/${route}`;
+            let routeStops = [];
+            if (company === "kmb") {
+                // 九巴可能有多個 bound，嘗試抓取常見方向以防萬清單為空
+                let bounds = [selectedOpt.dataset.bound, "I", "O"];
+                for (let b of bounds) {
+                    let rUrl = `https://api.etabus.gov.hk/v1/transport/kmb/route-stop/${route}/${b}/${selectedOpt.dataset.serviceType || 1}`;
+                    let rRes = await fetch(rUrl);
+                    let rJson = await rRes.json();
+                    if (rJson && rJson.data && rJson.data.length > 0) {
+                        routeStops = rJson.data;
+                        selectedOpt.dataset.bound = b; // 更新正確bound
+                        break;
+                    }
+                }
+            } else {
+                // 城巴路線站點
+                let rUrl = `https://rt.data.gov.hk/v1/transport/citybus/route-stop/ctb/${route}`;
+                let rRes = await fetch(rUrl);
+                let rJson = await rRes.json();
+                if (rJson && rJson.data) {
+                    routeStops = rJson.data;
+                }
+            }
 
-            let res = await fetch(url);
-            let json = await res.json();
-            let routeStops = json.data;
-            if (!routeStops || routeStops.length === 0) { stopSel.innerHTML = "<option>此方向暫無車站資料</option>"; return; }
+            if (!routeStops || routeStops.length === 0) { 
+                stopSel.innerHTML = "<option>此路線暫無車站資料</option>"; 
+                return; 
+            }
 
             let stopsRes = await fetch(company === "kmb" ? "https://api.etabus.gov.hk/v1/transport/kmb/stop" : "https://rt.data.gov.hk/v1/transport/citybus/stop");
             let stopsJson = await stopsRes.json();
             let allStopsMap = {};
             (stopsJson.data || []).forEach(s => { 
-                allStopsMap[s.stop] = s.name_tc || s.name; 
+                allStopsMap[s.stop] = s.name_tc || s.name_en || s.name; 
             });
 
             stopSel.innerHTML = "";
             routeStops.forEach(rs => {
                 let sId = rs.stop;
-                let sName = allStopsMap[sId] || "未知車站";
+                let sName = allStopsMap[sId] || "車站 " + sId;
                 let opt = new Option(sName + " (" + sId + ")", sId);
                 opt.dataset.stopName = sName;
                 opt.dataset.destName = selectedOpt.dataset.dest;
