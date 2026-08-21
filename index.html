@@ -213,7 +213,7 @@
         </div>
         <div class="header-right">
             <div id="global-update-time" class="header-time">更新時間: 載入中...</div>
-            <div id="global-weather" class="header-weather">天氣: 載入中...</div>
+            <div id="global-weather" class="header-weather">⛅ 載入中...</div>
         </div>
     </header>
 
@@ -312,19 +312,39 @@
         return { text: "晴朗", icon: "☀️" };
     }
 
-    /* 異步載入香港天氣數據與 Icon */
+    /* 取得 GPS 並異步載入天氣數據 */
     async function fetchWeather() {
         let weatherEl = document.getElementById("global-weather");
+        
+        // 預設香港座標（作為備用方案）
+        let lat = 22.3193;
+        let lon = 114.1694;
+
+        // 嘗試透過瀏覽器取得手機 GPS 經緯度
+        if (navigator.geolocation) {
+            try {
+                let position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                });
+                lat = position.coords.latitude;
+                lon = position.coords.longitude;
+            } catch (err) {
+                // 如果用戶拒絕授權或逾時，會安靜地使用預設的香港座標，不影響畫面運作
+                console.log("無法取得 GPS，使用預設香港座標。");
+            }
+        }
+
         try {
-            let res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=22.3193&longitude=114.1694&current_weather=true");
+            let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
             if (!res.ok) throw new Error();
             let data = await res.json();
             let temp = Math.round(data.current_weather.temperature);
             let weatherInfo = parseWeatherCode(data.current_weather.weathercode);
             
-            weatherEl.innerText = "天氣: " + weatherInfo.icon + " " + temp + "°C " + weatherInfo.text;
+            // 已經刪除「天氣: 」文字，改為直接顯示圖示、溫度與狀態
+            weatherEl.innerText = `${weatherInfo.icon} ${temp}°C ${weatherInfo.text}`;
         } catch (e) {
-            weatherEl.innerText = "天氣: ⛅ 28°C 多雲"; 
+            weatherEl.innerText = "⛅ 28°C 多雲"; 
         }
     }
 
