@@ -251,28 +251,39 @@
     }
     function saveFavorites(favs) { localStorage.setItem("mtr_web_favorites", JSON.stringify(favs)); }
 
-    /* ================= 取得定位 (雙重保險機制) ================= */
+    /* ================= 取得定位 (雙重保險 + 強制超時機制) ================= */
     function getSmartPosition() {
-        return new Promise((resolve, reject) => {
+        // 任務 A：向瀏覽器請求 GPS
+        const geoTask = new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
                 reject(new Error("瀏覽器不支援定位"));
                 return;
             }
-            // 嘗試 1：高精度定位 (8秒超時)
+            // 嘗試 1：高精度定位
             navigator.geolocation.getCurrentPosition(
                 resolve,
                 (err) => {
                     console.warn("高精度定位失敗，嘗試低精度定位...", err);
-                    // 嘗試 2：降級為低精度定位 (使用基站/Wi-Fi，快很多)
+                    // 嘗試 2：降級為低精度定位
                     navigator.geolocation.getCurrentPosition(
                         resolve,
                         reject,
-                        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+                        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
                     );
                 },
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         });
+
+        // 任務 B：終極防護計時器 (8秒後強制引爆)
+        const timeoutTask = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("瀏覽器定位無回應，觸發強制超時保護"));
+            }, 8000); // 8秒極限等待
+        });
+
+        // Promise.race：任務 A 與 任務 B 賽跑，誰先有結果就聽誰的
+        return Promise.race([geoTask, timeoutTask]);
     }
 
     /* ================= 切換模式 (MTR / Bus) ================= */
