@@ -281,16 +281,14 @@
 
     let currentSearchedStation = null;
 
-    /* 取得與儲存 LocalStorage 收藏 */
     function getFavorites() { 
         let favs = localStorage.getItem("mtr_web_favorites"); 
-        return favs ? JSON.parse(favs) : [{ lineCode: "TKL", stationCode: "LHP", stationName: "康城" }, { lineCode: "TWL", stationCode: "ADM", stationName: "金鐘" }]; 
+        return favs ? JSON.parse(favs) : [{ lineCode: "TKL", stationCode: "LHP", stationName: "康城" }, { lineCode: "KTL", stationCode: "NTK", stationName: "牛頭角" }]; 
     }
     function saveFavorites(favs) { 
         localStorage.setItem("mtr_web_favorites", JSON.stringify(favs)); 
     }
 
-    /* 渲染主控板 */
     async function renderDashboard() { 
         let nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); 
         document.getElementById("global-update-time").innerText = "更新時間: " + nowStr; 
@@ -300,58 +298,27 @@
         renderSearchedList(); 
     }
 
-    /* 天氣代碼解析與圖示匹配 */
     function parseWeatherCode(code) {
         if (code === 0) return { text: "晴朗", icon: "☀️" };
         if (code >= 1 && code <= 2) return { text: "多雲", icon: "⛅" };
         if (code === 3) return { text: "陰天", icon: "☁️" };
-        if (code >= 45 && code <= 48) return { text: "有霧", icon: "🌫️" };
-        if (code >= 51 && code <= 67) return { text: "有雨", icon: "🌧️" };
-        if (code >= 80 && code <= 82) return { text: "陣雨", icon: "🌦️" };
-        if (code >= 95) return { text: "雷暴", icon: "⚡" };
-        return { text: "晴朗", icon: "☀️" };
+        return { text: "多雲", icon: "⛅" };
     }
 
-    /* 取得 GPS 並異步載入天氣數據（加入防呆超時保護） */
     async function fetchWeather() {
         let weatherEl = document.getElementById("global-weather");
-        
-        // 預設香港座標（作為備用方案）
-        let lat = 22.3193;
-        let lon = 114.1694;
-
-        // 嘗試取得 GPS，加入 3 秒超時保護，避免在 iOS Chrome 卡死
-        if (navigator.geolocation) {
-            try {
-                let position = await new Promise((resolve, reject) => {
-                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 3000);
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => { clearTimeout(timer); resolve(pos); },
-                        (err) => { clearTimeout(timer); reject(err); },
-                        { timeout: 3000, maximumAge: 60000, enableHighAccuracy: false }
-                    );
-                });
-                lat = position.coords.latitude;
-                lon = position.coords.longitude;
-            } catch (err) {
-                console.log("GPS 未授權或逾時，自動使用預設香港座標。");
-            }
-        }
-
         try {
-            let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+            let res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=22.3193&longitude=114.1694&current_weather=true`);
             if (!res.ok) throw new Error();
             let data = await res.json();
             let temp = Math.round(data.current_weather.temperature);
             let weatherInfo = parseWeatherCode(data.current_weather.weathercode);
-            
-            weatherEl.innerText = `${weatherInfo.icon} ${temp}°C ${weatherInfo.text}`;
+            weatherEl.innerText = `${weatherInfo.icon} ${temp}°C 香港`;
         } catch (e) {
             weatherEl.innerText = "⛅ 28°C 多雲"; 
         }
     }
 
-    /* 渲染收藏列表 */
     async function renderFavoritesList() { 
         let favs = getFavorites(); 
         let container = document.getElementById("favorites-list"); 
@@ -371,14 +338,13 @@
             let card = document.createElement("div"); 
             card.className = "card"; 
             card.style.borderLeftColor = lineHexColor; 
-            card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + fav.stationName + "站 ⭐</span><div class='card-actions'><button class='btn btn-success' style='padding: 4px 8px; font-size: 11px;' onclick=\"addFavorite('" + fav.lineCode + "', '" + fav.stationCode + "', '" + fav.stationName + "')\">收藏</button><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='removeFavorite(" + i + ")'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
+            card.innerHTML = "<div class='card-header'><span class='station-title'>🚝 " + fav.stationName + "站 ⭐</span><div class='card-actions'><button class='btn btn-danger' style='padding: 4px 8px; font-size: 11px;' onclick='removeFavorite(" + i + ")'>刪除</button><button class='btn btn-primary' style='padding: 4px 8px; font-size: 11px;' onclick='openModal()'>查詢</button></div></div><div id='" + cardId + "'>載入班次中...</div>"; 
             
             container.appendChild(card); 
             loadStationSchedule(fav.lineCode, fav.stationCode, cardId); 
         } 
     }
 
-    /* 渲染搜尋列表 */
     async function renderSearchedList() { 
         let section = document.getElementById("searched-section"); 
         let container = document.getElementById("searched-list"); 
@@ -404,7 +370,7 @@
         loadStationSchedule(station.lineCode, station.stationCode, cardId); 
     }
 
-    /* 載入車站即時班次 */
+    /* 修正後的即時班次載入邏輯：完整迴圈遍歷所有回傳方向清單 */
     async function loadStationSchedule(lineCode, stationCode, elementId) { 
         let isTransfer = TRANSFER_STATIONS[stationCode] !== undefined; 
         let linesToFetch = isTransfer ? TRANSFER_STATIONS[stationCode] : [lineCode]; 
@@ -419,36 +385,44 @@
                 
                 if (json && json.status === 1 && json.data && json.data[key]) { 
                     let sData = json.data[key]; 
-                    let rawList = (sData.UP || []).concat(sData.DOWN || []); 
                     
-                    for (let item of rawList) { 
-                        if (item.time) { 
-                            let tTime = new Date(item.time.replace(/-/g, "/")); 
-                            let diffDiffSeconds = Math.floor((tTime - now) / 1000); 
-                            
-                            if (diffDiffSeconds >= -20) { 
-                                let diffMins = Math.floor(diffDiffSeconds / 60); 
-                                allTrains.push({ 
-                                    lineCode: lCode, 
-                                    rawTime: tTime, 
-                                    countdown: diffMins < 0 ? 0 : diffMins, 
-                                    destination: translateDest(item.dest) 
-                                }); 
-                            } 
-                        } 
-                    } 
+                    // 動態走訪該站點回傳的所有屬性鍵值（例如 UP, DOWN 或其他路線方向代號）
+                    for (let directionKey in sData) {
+                        let rawList = sData[directionKey];
+                        if (Array.isArray(rawList)) {
+                            for (let item of rawList) { 
+                                if (item.time) { 
+                                    let tTime = new Date(item.time.replace(/-/g, "/")); 
+                                    let diffDiffSeconds = Math.floor((tTime - now) / 1000); 
+                                    
+                                    // 放寬時間判定門檻，確保即將到達或剛開出的車次也能正確納入
+                                    if (diffDiffSeconds >= -40) { 
+                                        let diffMins = Math.floor(diffDiffSeconds / 60); 
+                                        allTrains.push({ 
+                                            lineCode: lCode, 
+                                            rawTime: tTime, 
+                                            countdown: diffMins < 0 ? 0 : diffMins, 
+                                            destination: translateDest(item.dest) 
+                                        }); 
+                                    } 
+                                } 
+                            }
+                        }
+                    }
                 } 
             } catch (e) { 
                 console.error(e); 
             } 
         } 
 
+        // 依時間先後順序排序
         allTrains.sort((a, b) => a.rawTime - b.rawTime); 
         let el = document.getElementById(elementId); 
         
         if (allTrains.length > 0) { 
             let html = ""; 
-            let displayLimit = isTransfer ? 6 : 3; 
+            // 轉車站顯示最多 6 個班次，一般車站顯示最多 4 個班次
+            let displayLimit = isTransfer ? 6 : 4; 
             
             for (let i = 0; i < Math.min(allTrains.length, displayLimit); i++) { 
                 let t = allTrains[i]; 
@@ -466,7 +440,6 @@
         } 
     }
 
-    /* 目的地代碼轉換 */
     function translateDest(destCode) { 
         if (!destCode) return "市區"; 
         const specialDestMap = { 
@@ -484,7 +457,6 @@
         return destCode; 
     }
 
-    /* 彈窗控制與功能 */
     function openModal() { 
         let lineSel = document.getElementById("lineSelect"); 
         lineSel.innerHTML = ""; 
@@ -510,28 +482,11 @@
     }
 
     function handleModalConfirm() { 
-        let lineKey = document.getElementById("lineSelect.value"); 
-        // 修正下拉選單取值
         let lineKeySelect = document.getElementById("lineSelect").value;
         let sCode = document.getElementById("stationSelect").value; 
         let sName = MTR_LINES[lineKeySelect].stations[sCode]; 
         currentSearchedStation = { lineCode: lineKeySelect, stationCode: sCode, stationName: sName }; 
         closeModal(); 
-        renderDashboard(); 
-    }
-
-    function addFavorite(lineKey, sCode, sName) { 
-        let favs = getFavorites(); 
-        if (favs.some(f => f.stationCode === sCode && f.lineCode === lineKey)) { 
-            alert("此車站已經在收藏中！"); 
-            return; 
-        } 
-        if (favs.length >= 3) { 
-            alert("收藏上限為 3 個車站！"); 
-            return; 
-        } 
-        favs.push({ lineCode: lineKey, stationCode: sCode, stationName: sName }); 
-        saveFavorites(favs); 
         renderDashboard(); 
     }
 
@@ -561,7 +516,6 @@
         renderDashboard(); 
     }
 
-    /* 首次啟動與定時器（每30秒自動更新） */
     renderDashboard(); 
     setInterval(renderDashboard, 30000);
 </script>
