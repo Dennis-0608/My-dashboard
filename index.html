@@ -40,16 +40,28 @@
             align-items: center;
             gap: 8px;
         }
-        .logo-select {
+        
+        /* 解決問題 1：自訂下拉選單，強制覆蓋手機預設樣式並加入純白箭咀 */
+        .custom-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
             background-color: #2c2c2e;
             color: var(--text-main);
             border: none;
-            padding: 6px 10px;
+            /* 右邊預留 30px 空間給箭咀 */
+            padding: 8px 30px 8px 10px;
             border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
+            /* 嵌入純白色 SVG 箭咀 */
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px auto;
         }
+
         .header-right {
             text-align: right;
             display: flex;
@@ -72,9 +84,7 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .btn:hover {
-            background-color: #3a3a3c;
-        }
+        .btn:hover { background-color: #3a3a3c; }
         .btn-primary { background-color: #1c58d9; }
         .btn-success { background-color: #248a3d; }
         .btn-danger { background-color: #a91d1a; }
@@ -130,6 +140,7 @@
             margin: 12px 0 6px 4px;
             font-weight: bold;
         }
+        
         .modal {
             display: none;
             position: fixed;
@@ -142,14 +153,16 @@
             background: var(--card-bg);
             width: 100%; max-width: 400px;
             border-radius: 16px; padding: 20px;
-            box-sizing: border-box; max-height: 80vh; overflow-y: auto;
+            box-sizing: border-box;
         }
         .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: center; }
-        .select-group { margin-bottom: 12px; }
-        label { font-size: 13px; color: var(--text-sub); display: block; margin-bottom: 4px; }
-        select {
-            width: 100%; padding: 10px; background: #2c2c2e; color: white;
-            border: none; border-radius: 8px; font-size: 14px;
+        .select-group { margin-bottom: 15px; }
+        label { font-size: 13px; color: var(--text-sub); display: block; margin-bottom: 6px; }
+        
+        /* 將彈窗內的選單也套用同樣的樣式，但設定為 100% 寬度 */
+        .modal-select {
+            width: 100%;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -158,7 +171,7 @@
 <div class="container">
     <header>
         <div class="header-title-wrapper">
-            <select id="modeSelect" class="logo-select" onchange="switchMode()">
+            <select id="modeSelect" class="custom-select" onchange="switchMode()">
                 <option value="mtr">🚇 MTR 即時班次</option>
                 <option value="bus">🚌 巴士到站預報</option>
             </select>
@@ -183,11 +196,11 @@
 
     <!-- 巴士介面區塊 -->
     <div id="bus-container" style="display: none;">
-        <div class="section-label">📍 附近巴士站 (依 GPS 定位)</div>
+        <div class="section-label">📍 附近巴士站 (依高精度 GPS 定位)</div>
         <div style="margin-bottom: 10px;">
-            <button class="btn btn-primary" onclick="fetchNearbyBuses()" style="width:100%; padding: 10px;">🔄 重新整理附近巴士</button>
+            <button class="btn btn-primary" onclick="fetchNearbyBuses()" style="width:100%; padding: 10px;">🔄 重新獲取最新位置與巴士</button>
         </div>
-        <div id="bus-stops-list"><p style="text-align:center; color: var(--text-sub);">正在透過 GPS 尋找附近巴士站...</p></div>
+        <div id="bus-stops-list"><p style="text-align:center; color: var(--text-sub);">正在啟動 GPS 尋找附近巴士站...</p></div>
     </div>
 </div>
 
@@ -197,15 +210,15 @@
         <div class="modal-title">查詢車站班次</div>
         <div class="select-group">
             <label>選擇路線：</label>
-            <select id="lineSelect" onchange="updateStationOptions()"></select>
+            <select id="lineSelect" class="custom-select modal-select" onchange="updateStationOptions()"></select>
         </div>
         <div class="select-group">
             <label>選擇車站：</label>
-            <select id="stationSelect"></select>
+            <select id="stationSelect" class="custom-select modal-select"></select>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="btn btn-success" style="flex:1;" onclick="handleModalConfirm()">確認查詢</button>
-            <button class="btn" style="flex:1; background-color: #3a3a3c;" onclick="closeModal()">取消</button>
+            <button class="btn btn-success" style="flex:1; padding:10px;" onclick="handleModalConfirm()">確認查詢</button>
+            <button class="btn" style="flex:1; background-color: #3a3a3c; padding:10px;" onclick="closeModal()">取消</button>
         </div>
     </div>
 </div>
@@ -289,16 +302,17 @@
         if (navigator.geolocation) {
             try {
                 let position = await new Promise((resolve, reject) => {
-                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 3000);
+                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 10000); // 延長至 10 秒
                     navigator.geolocation.getCurrentPosition(
                         (pos) => { clearTimeout(timer); resolve(pos); },
                         (err) => { clearTimeout(timer); reject(err); },
-                        { timeout: 3000, maximumAge: 60000, enableHighAccuracy: false }
+                        // 解決問題 2：要求高精度、不使用快取
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                     );
                 });
                 lat = position.coords.latitude;
                 lon = position.coords.longitude;
-            } catch (err) { console.log("GPS 逾時，使用預設座標"); }
+            } catch (err) { console.log("天氣 GPS 逾時或被拒，使用預設座標"); }
         }
 
         try {
@@ -435,26 +449,30 @@
         return destCode; 
     }
 
-    /* ================= 巴士到站預報與 GPS 邏輯 ================= */
+    /* ================= 巴士到站預報與高精度 GPS 邏輯 ================= */
     async function fetchNearbyBuses() {
         let container = document.getElementById("bus-stops-list");
-        container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>正在透過 GPS 定位尋找附近巴士站...</p>";
+        container.innerHTML = "<p style='text-align:center; color: var(--text-sub);'>正在鎖定高精度 GPS 定位中，請稍候...</p>";
 
-        let lat = 22.3193, lon = 114.1694;
+        let lat = 22.3193, lon = 114.1694; // 預設旺角
+        let isRealLocation = false;
+
         if (navigator.geolocation) {
             try {
                 let position = await new Promise((resolve, reject) => {
-                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 4000);
+                    let timer = setTimeout(() => reject(new Error("GPS timeout")), 10000); // 解決問題 2：給 10 秒時間鎖定
                     navigator.geolocation.getCurrentPosition(
                         (pos) => { clearTimeout(timer); resolve(pos); },
                         (err) => { clearTimeout(timer); reject(err); },
-                        { timeout: 4000, maximumAge: 60000, enableHighAccuracy: false }
+                        // 解決問題 2：要求最高精準度，不使用歷史快取
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                     );
                 });
                 lat = position.coords.latitude;
                 lon = position.coords.longitude;
+                isRealLocation = true;
             } catch (err) {
-                console.log("GPS 逾時或未授權，使用預設座標");
+                console.log("GPS 定位失敗或逾時，使用預設座標");
             }
         }
 
@@ -464,7 +482,7 @@
             let data = await res.json();
             let stops = data.data;
 
-            // 計算與當前 GPS 座標的距離，找出最近的 3 個九巴站點
+            // 計算與當前 GPS 座標的距離
             stops.forEach(s => {
                 let dist = Math.sqrt(Math.pow(s.lat - lat, 2) + Math.pow(s.long - lon, 2));
                 s.distance = dist;
@@ -479,6 +497,15 @@
             }
 
             container.innerHTML = "";
+            
+            // 提示使用者目前定位狀態
+            if (!isRealLocation) {
+                let warnMsg = document.createElement("div");
+                warnMsg.style = "font-size: 12px; color: var(--warn); text-align: center; margin-bottom: 10px;";
+                warnMsg.innerText = "⚠️ 無法取得精確位置，目前顯示預設區域 (旺角) 的巴士站";
+                container.appendChild(warnMsg);
+            }
+
             for (let i = 0; i < nearestStops.length; i++) {
                 let stop = nearestStops[i];
                 let cardId = `bus-card-${i}`;
